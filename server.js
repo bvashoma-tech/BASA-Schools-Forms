@@ -42,14 +42,54 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Serve static files (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname)));
 
+// Wait up to `ms` milliseconds for MongoDB to connect
+function waitForDb(ms) {
+  return new Promise((resolve) => {
+    if (dbConnected) return resolve();
+    const check = setInterval(() => { if (dbConnected) { clearInterval(check); resolve(); } }, 300);
+    setTimeout(() => { clearInterval(check); resolve(); }, ms);
+  });
+}
+
+// Sync entries from offline JSON files into MongoDB (runs once on connection)
+async function syncOfflineData() {
+  const files = [
+    { file: 'attendance_offline.json', Model: Attendance },
+    { file: 'grade10_offline.json',    Model: Grade10Form }
+  ];
+  for (const { file, Model } of files) {
+    const fullPath = path.join(offlineDir, file);
+    if (!fs.existsSync(fullPath)) continue;
+    try {
+      const raw = fs.readFileSync(fullPath, 'utf8');
+      const items = raw ? JSON.parse(raw) : [];
+      if (!items.length) continue;
+      console.log(`Syncing ${items.length} offline entries from ${file} to MongoDB…`);
+      for (const item of items) {
+        try {
+          const { submittedAt, ...data } = item;
+          await new Model({ ...data, submittedAt: submittedAt ? new Date(submittedAt) : new Date() }).save();
+        } catch (e) {
+          console.error('Failed to sync entry:', e.message);
+        }
+      }
+      fs.writeFileSync(fullPath, '[]', 'utf8');
+      console.log(`Synced and cleared ${file}`);
+    } catch (e) {
+      console.error(`Error syncing ${file}:`, e.message);
+    }
+  }
+}
+
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/basa-forms', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => {
+.then(async () => {
   dbConnected = true;
   console.log('MongoDB connected');
+  await syncOfflineData();
 })
 .catch(err => {
   dbConnected = false;
@@ -102,12 +142,12 @@ app.get('/admin', (req, res) => {
 
 app.post('/api/submit-grade10', async (req, res) => {
   try {
+    if (!dbConnected) await waitForDb(12000);
     if (dbConnected) {
       const formData = new Grade10Form(req.body);
       await formData.save();
       return res.json({ success: true, message: 'Form submitted successfully' });
     }
-
     appendOfflineFile('grade10_offline.json', { ...req.body, submittedAt: new Date().toISOString() });
     return res.json({ success: true, message: 'Form saved locally (offline mode)' });
   } catch (error) {
@@ -117,12 +157,12 @@ app.post('/api/submit-grade10', async (req, res) => {
 
 app.post('/api/submit-attendance', async (req, res) => {
   try {
+    if (!dbConnected) await waitForDb(12000);
     if (dbConnected) {
       const attendanceData = new Attendance(req.body);
       await attendanceData.save();
       return res.json({ success: true, message: 'Attendance recorded successfully' });
     }
-
     appendOfflineFile('attendance_offline.json', { ...req.body, submittedAt: new Date().toISOString() });
     return res.json({ success: true, message: 'Attendance saved locally (offline mode)' });
   } catch (error) {
