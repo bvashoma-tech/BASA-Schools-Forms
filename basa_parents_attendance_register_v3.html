@@ -470,13 +470,18 @@ function addEntry() {
     learners: learners
   };
   entries.push(entry);
-  // Submit to backend
+  // Submit to backend (without id field to avoid MongoDB ObjectId conversion error)
+  const submitData = {
+    eventType: entry.eventType, eventDate: entry.eventDate, campus: entry.campus,
+    title: entry.title, firstName: entry.firstName, surname: entry.surname,
+    mobile: entry.mobile, email: entry.email, learners: entry.learners
+  };
   fetch('/api/submit-attendance', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(entry)
+    body: JSON.stringify(submitData)
   })
   .then(response => response.json())
   .then(data => {
