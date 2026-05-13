@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BASA Schools | Grade 10 Subject Selection</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --gold: #C9A227;
+  --gold-light: #E6C65A;
+  --gold-pale: #F7EFC8;
+  --olive: #556B2F;
+  --olive-dark: #3D4F22;
+  --bg: #FAF7EC;
+  --text: #2C2C2C;
+  --border: #C9A227;
+  --error: #B33A3A;
+  --success: #2E7D32;
+  --white: #ffffff;
+  --grey-light: #f0ede0;
+  --grey-mid: #e8e4d0;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 16px;
+  line-height: 1.5;
+}
+
+/* ── Container ── */
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 6px 28px rgba(85,107,47,.18);
+  overflow: hidden;
+  border-top: 7px solid var(--gold);
+}
+
+/* ── Header ── */
+header {
+  background: linear-gradient(135deg, var(--olive), var(--olive-dark));
+  color: var(--white);
+  padding: 24px 28px 20px;
+  text-align: center;
+  position: relative;
+}
+.header-badge {
+  display: inline-block;
+  background: var(--gold);
+  color: var(--olive-dark);
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 5px 18px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+header h1 { font-size: 1.45rem; font-weight: 700; }
+header p { font-size: .85rem; opacity: .85; margin-top: 4px; }
+
+/* ── Progress Bar ── */
+.progress-wrap {
+  background: var(--grey-light);
+  border-bottom: 2px solid var(--gold);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.progress-steps { display: flex; gap: 6px; flex: 1; }
+.step-dot {
+  flex: 1; height: 6px;
+  background: #ddd; border-radius: 4px; transition: background .3s;
+}
+.step-dot.done { background: var(--gold); }
+.step-dot.active { background: var(--olive); }
+.progress-label { font-size: .82rem; color: var(--olive-dark); font-weight: 600; white-space: nowrap; }
+
+/* ── Section Panels ── */
+.section-panel { display: none; padding: 28px; }
+.section-panel.active { display: block; }
+
+.section-title {
+  color: var(--olive-dark);
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--gold);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title span.badge {
+  background: var(--olive); color: var(--white);
+  font-size: .72rem; padding: 2px 9px; border-radius: 20px;
+  font-weight: 600; letter-spacing: .04em;
+}
+.section-title span.tag-compulsory {
+  background: var(--gold-pale); color: var(--olive-dark);
+  font-size: .72rem; padding: 2px 9px; border-radius: 20px;
+  font-weight: 600; border: 1px solid var(--gold);
+}
+
+/* ── Grid ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+@media(max-width: 600px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+/* ── Fields ── */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-weight: 600; color: var(--olive-dark); font-size: .88rem; margin-bottom: 5px; }
+.field label .req { color: var(--error); margin-left: 2px; }
+input[type="text"], input[type="date"], select {
+  width: 100%; padding: 10px 12px;
+  border: 1.5px solid #ccc; border-radius: 7px;
+  font-size: .95rem; font-family: inherit;
+  background: var(--white); transition: border-color .2s, box-shadow .2s; color: var(--text);
+}
+input:focus, select:focus {
+  outline: none; border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201,162,39,.15);
+}
+input.error, select.error { border-color: var(--error) !important; }
+
+/* ── Choice Cards ── */
+.choice-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.choice-card {
+  flex: 1; min-width: 130px;
+  border: 2px solid #ddd; border-radius: 9px;
+  padding: 12px 14px; cursor: pointer;
+  transition: all .2s; text-align: center;
+  font-size: .9rem; font-weight: 600; color: #555;
+  background: var(--white); user-select: none; position: relative;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(201,162,39,.18);
+}
+.choice-card:hover { border-color: var(--gold); background: var(--gold-pale); color: var(--olive-dark); transform: translateY(-1px); }
+.choice-card.selected { border-color: var(--olive); background: linear-gradient(135deg,#EEF3E6,#e3eccc); color: var(--olive-dark); box-shadow: 0 3px 10px rgba(85,107,47,.2); }
+.choice-card.selected::after { content: '✓'; position: absolute; top: 6px; right: 8px; font-size: .75rem; color: var(--olive); font-weight: 900; }
+.choice-card.compulsory { border-color: var(--gold); background: var(--gold-pale); color: var(--olive-dark); cursor: default; opacity: .88; }
+.choice-card.compulsory::after { content: '★'; position: absolute; top: 6px; right: 8px; font-size: .75rem; color: var(--gold); }
+.choice-card.disabled-card { opacity: .38; pointer-events: none; cursor: not-allowed; }
+.choice-card[style*="display:none"] { display: none !important; }
+
+/* ── Elective Group ── */
+.elective-group { background: #f8f6ef; border: 1.5px solid #e5dfc0; border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
+.elective-group-title { font-size: .82rem; font-weight: 700; color: var(--olive-dark); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.elective-group-title::before { content: ''; display: inline-block; width: 10px; height: 10px; background: var(--gold); border-radius: 50%; }
+
+.note-box { background: #FFF8E1; border-left: 4px solid var(--gold); border-radius: 4px; padding: 10px 14px; font-size: .82rem; color: #5a4a0a; margin-bottom: 16px; }
+.warning-box { background: #FFF0F0; border-left: 4px solid var(--error); border-radius: 4px; padding: 10px 14px; font-size: .82rem; color: #7a2323; margin-bottom: 12px; }
+
+/* Multi-select counter */
+.multiselect-counter { display: inline-block; margin-top: 10px; font-size: .82rem; font-weight: 700; color: var(--olive-dark); background: var(--gold-pale); border: 1px solid var(--gold); padding: 4px 12px; border-radius: 20px; }
+.multiselect-counter.complete { background: #e3eccc; border-color: var(--olive); color: var(--olive-dark); }
+
+/* ── Summary / Review ── */
+.summary-section { background: #f8f6ef; border: 1.5px solid #e5dfc0; border-radius: 10px; padding: 18px 20px; margin-bottom: 18px; }
+.summary-section h3 { color: var(--olive-dark); font-size: .92rem; font-weight: 700; margin-bottom: 12px; border-bottom: 1px dashed var(--gold); padding-bottom: 6px; }
+.summary-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #ece7d5; font-size: .88rem; gap: 10px; }
+.summary-row:last-child { border-bottom: none; }
+.summary-row .label { color: #666; font-weight: 500; }
+.summary-row .value { color: var(--olive-dark); font-weight: 700; text-align: right; }
+.summary-row .value.missing { color: var(--error); font-style: italic; font-weight: 400; }
+
+/* ── Declaration ── */
+.declaration-box { background: #fffbf0; border: 1.5px solid var(--gold); border-radius: 9px; padding: 16px 18px; margin-bottom: 18px; font-size: .88rem; color: #444; line-height: 1.7; }
+.sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+@media(max-width:500px){ .sig-grid { grid-template-columns: 1fr; } }
+
+/* ── Buttons ── */
+.actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; padding-top: 20px; margin-top: 20px; border-top: 2px dashed var(--gold); }
+.btn { background: var(--gold); color: var(--olive-dark); border: none; padding: 11px 22px; border-radius: 7px; font-weight: 700; cursor: pointer; font-size: .93rem; font-family: inherit; transition: all .2s; min-height: 44px; display: inline-flex; align-items: center; gap: 7px; touch-action: manipulation; }
+.btn:hover { background: var(--gold-light); transform: translateY(-1px); }
+.btn.olive { background: var(--olive); color: var(--white); }
+.btn.olive:hover { background: var(--olive-dark); }
+.btn.outline { background: transparent; border: 2px solid var(--olive); color: var(--olive); }
+.btn.outline:hover { background: var(--olive); color: var(--white); }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+/* ── Toast ── */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--olive-dark); color: var(--white); padding: 12px 20px; border-radius: 8px; font-size: .9rem; font-weight: 600; box-shadow: 0 4px 18px rgba(0,0,0,.25); z-index: 9999; transform: translateY(80px); opacity: 0; transition: all .3s; pointer-events: none; border-left: 4px solid var(--gold); }
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ── Error msg ── */
+.field-error { color: var(--error); font-size: .78rem; margin-top: 4px; display: none; }
+.field-error.show { display: block; }
+
+/* ── Official Use ── */
+.official-box { background: var(--grey-light); border: 1.5px dashed #bbb; border-radius: 9px; padding: 16px 18px; margin-top: 18px; }
+.official-box h4 { color: #888; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+.official-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+@media(max-width: 600px){ .official-grid { grid-template-columns: 1fr; } }
+
+/* ── Submitted state ── */
+.submitted-screen { display: none; text-align: center; padding: 50px 28px; }
+.submitted-screen.show { display: block; }
+.submitted-icon { width: 80px; height: 80px; background: linear-gradient(135deg,var(--olive),var(--olive-dark)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2rem; color: var(--white); box-shadow: 0 6px 20px rgba(85,107,47,.3); }
+.submitted-screen h2 { color: var(--olive-dark); font-size: 1.4rem; margin-bottom: 10px; }
+.submitted-screen p { color: #666; font-size: .9rem; margin-bottom: 24px; }
+
+/* Maths note dynamic */
+#maths-dynamic-note { transition: all .3s; }
+
+/* ── Admin PIN Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(40,55,20,.72);
+  backdrop-filter: blur(3px);
+  z-index: 1000; display: none;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--white); border-radius: 12px;
+  padding: 30px; width: min(360px, 90vw); text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,.3);
+  border-top: 5px solid var(--gold);
+  animation: popIn .22s ease;
+}
+@keyframes popIn { from{opacity:0;transform:scale(.93);} to{opacity:1;transform:scale(1);} }
+.modal-box h3 { color: var(--olive-dark); font-size: 1.05rem; margin-bottom: 6px; }
+.modal-box p { color: #666; font-size: .84rem; margin-bottom: 16px; }
+.pin-input {
+  text-align: center; font-size: 1.35rem; letter-spacing: .3em;
+  font-weight: 700; border: 2px solid #ccc; border-radius: 8px;
+  padding: 10px; width: 100%; margin-bottom: 10px; color: var(--olive-dark);
+  font-family: inherit;
+}
+.pin-input:focus { border-color: var(--gold); outline: none; box-shadow: 0 0 0 3px rgba(201,162,39,.18); }
+.pin-err { color: var(--error); font-size: .8rem; min-height: 18px; margin-bottom: 10px; }
+.modal-actions { display: flex; gap: 10px; justify-content: center; }
+
+/* ── Locked official box ── */
+.official-locked {
+  background: var(--grey-light);
+  border: 1.5px dashed #bbb;
+  border-radius: 9px;
+  padding: 20px 18px;
+  margin-top: 18px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+}
+.official-locked-left { display: flex; align-items: center; gap: 12px; }
+.lock-icon-circle {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--olive-dark); color: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; flex-shrink: 0;
+}
+.official-locked-left p { font-size: .85rem; color: #666; margin: 0; }
+.official-locked-left strong { color: var(--olive-dark); font-size: .9rem; display: block; margin-bottom: 2px; }
+.official-unlocked-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+}
+.official-unlocked-header h4 { color: #555; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; margin: 0; }
+.btn-lock-sm {
+  background: transparent; border: 1.5px solid var(--olive);
+  color: var(--olive); border-radius: 6px; padding: 4px 12px;
+  font-size: .78rem; font-weight: 700; cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 5px; transition: all .2s;
+}
+.btn-lock-sm:hover { background: var(--olive); color: var(--white); }
+
+/* Group card hidden state */
+.group-card-hidden { display: none !important; }
+
+@media print {
+  body { background: white; padding: 0; }
+  .container { box-shadow: none; border-radius: 0; }
+  .actions, .progress-wrap { display: none; }
+  .section-panel { display: block !important; page-break-inside: avoid; }
+}
+</style>
+</head>
+<body ontouchstart="">
+
+<div class="container" role="main">
+
+  <!-- ── Header ── -->
+  <header>
+    <div class="header-badge">BASA Schools — Grade 10 Subject Selection</div>
+    <h1>Grade 10 Subject Selection</h1>
+    <p>Academic Year 2026/2027 &nbsp;|&nbsp; Please complete all sections carefully</p>
+  </header>
+
+  <!-- ── Progress ── -->
+  <div class="progress-wrap">
+    <div class="progress-steps">
+      <div class="step-dot active" id="dot-0"></div>
+      <div class="step-dot" id="dot-1"></div>
+      <div class="step-dot" id="dot-2"></div>
+      <div class="step-dot" id="dot-3"></div>
+    </div>
+    <div class="progress-label" id="progress-label">Step 1 of 4</div>
+  </div>
+
+  <!-- ══ SECTION A: Learner Information ══ -->
+  <div class="section-panel active" id="panel-0">
+    <div class="section-title">
+      Section A &nbsp;<span class="badge">Learner Information</span>
+    </div>
+
+    <div class="grid-3">
+      <div class="field">
+        <label for="firstname">First Name <span class="req">*</span></label>
+        <input type="text" id="firstname" placeholder="e.g. Thabo" autocomplete="off"/>
+        <div class="field-error" id="err-firstname">Please enter your first name.</div>
+      </div>
+      <div class="field">
+        <label for="surname">Surname <span class="req">*</span></label>
+        <input type="text" id="surname" placeholder="e.g. Nkosi" autocomplete="off"/>
+        <div class="field-error" id="err-surname">Please enter your surname.</div>
+      </div>
+      <div class="field">
+        <label for="studentno">Student Number <span class="req">*</span></label>
+        <input type="text" id="studentno" placeholder="e.g. 20251234" autocomplete="off"/>
+        <div class="field-error" id="err-studentno">Please enter your student number.</div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label for="school">School <span class="req">*</span></label>
+        <select id="school">
+          <option value="">-- Select School --</option>
+          <option>BASA Protea Glen Combined School</option>
+          <option>BASA Tutorial Institute (Riversands)</option>
+        </select>
+        <div class="field-error" id="err-school">Please select your school.</div>
+      </div>
+      <div class="field">
+        <label for="grade9class">Grade 9 Class <span class="req">*</span></label>
+        <select id="grade9class">
+          <option value="">-- Select Class --</option>
+        </select>
+        <div class="field-error" id="err-grade9class">Please select your class.</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div></div>
+      <button class="btn olive" onclick="goNext(0)">Next: Compulsory Subjects &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ══ SECTION B: Compulsory Subjects ══ -->
+  <div class="section-panel" id="panel-1">
+    <div class="section-title">
+      Section B &nbsp;<span class="tag-compulsory">Compulsory Subjects</span>
+    </div>
+
+    <!-- Home Language -->
+    <div class="field">
+      <label>Home Language <span class="req">*</span> — choose one</label>
+      <div class="choice-group" id="home-lang-group">
+        <div class="choice-card" data-group="home-lang" data-val="English" onclick="selectCard(this)" ontouchstart="">English</div>
+        <div class="choice-card" data-group="home-lang" data-val="IsiZulu" onclick="selectCard(this)" ontouchstart="">IsiZulu</div>
+        <div class="choice-card" data-group="home-lang" data-val="Sepedi" onclick="selectCard(this)" ontouchstart="">Sepedi</div>
+      </div>
+      <div class="field-error" id="err-home-lang">Please select your Home Language.</div>
+    </div>
+
+    <!-- First Additional Language -->
+    <div class="field" style="margin-top:18px">
+      <label>First Additional Language <span class="req">*</span> — choose one</label>
+      <div class="note-box">⚠ English is compulsory as FAL if <strong>not</strong> chosen at Home Language level.</div>
+      <div class="choice-group" id="fal-group">
+        <div class="choice-card" data-group="fal" data-val="English" onclick="selectCard(this)" ontouchstart="">English</div>
+        <div class="choice-card" data-group="fal" data-val="Afrikaans" onclick="selectCard(this)" ontouchstart="">Afrikaans</div>
+      </div>
+      <div class="field-error" id="err-fal">Please select your First Additional Language.</div>
+    </div>
+
+    <!-- Life Orientation -->
+    <div class="field" style="margin-top:18px">
+      <label>Life Orientation</label>
+      <div class="choice-group">
+        <div class="choice-card compulsory">Life Orientation<br/><small style="font-weight:400;font-size:.75rem;color:#777">Compulsory — no choice required</small></div>
+      </div>
+    </div>
+
+    <!-- Mathematics -->
+    <div class="field" style="margin-top:18px">
+      <label>Mathematics <span class="req">*</span> — choose one</label>
+      <div class="note-box" id="maths-dynamic-note">
+        ⚠ Select your school first, then choose your Mathematics option. Your choice will determine which Elective Groups are available.
+      </div>
+      <div class="choice-group" id="maths-group">
+        <div class="choice-card" data-group="maths" data-val="Mathematics" onclick="selectCard(this)" ontouchstart="">Mathematics</div>
+        <div class="choice-card" data-group="maths" data-val="Mathematical Literacy" onclick="selectCard(this)" ontouchstart="">Mathematical Literacy</div>
+      </div>
+      <div class="field-error" id="err-maths">Please choose Mathematics or Mathematical Literacy.</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn outline" onclick="goBack(1)">&larr; Back</button>
+      <button class="btn olive" onclick="goNext(1)">Next: Elective Subjects &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ══ SECTION C: Elective Subjects ══ -->
+  <div class="section-panel" id="panel-2">
+    <div class="section-title">
+      Section C &nbsp;<span class="badge">Elective Subjects</span>
+    </div>
+    <p style="font-size:.88rem;color:#555;margin-bottom:16px;">Select <strong>one elective group</strong> below. Compulsory subjects in each group are pre-filled. You will then choose any additional required subjects.</p>
+
+    <!-- Group selection tab cards -->
+    <div class="elective-group">
+      <div class="elective-group-title">Elective Group Selection</div>
+      <div class="note-box" id="elective-section-note" style="margin-bottom:10px">Select <strong>one elective group</strong>, then choose the required subjects from that group. Compulsory subjects are shown with ★.</div>
+      <div class="choice-group" id="elective-group-choice">
+        <div class="choice-card" data-group="elective-group" data-val="g1" onclick="selectElectiveGroup(this)" ontouchstart="" id="tab-g1">
+          Group 1<br/><small style="font-weight:400;font-size:.78rem" id="desc-g1">Loading…</small>
+        </div>
+        <div class="choice-card" data-group="elective-group" data-val="g2" onclick="selectElectiveGroup(this)" ontouchstart="" id="tab-g2">
+          Group 2<br/><small style="font-weight:400;font-size:.78rem" id="desc-g2">Loading…</small>
+        </div>
+        <div class="choice-card" data-group="elective-group" data-val="g3" onclick="selectElectiveGroup(this)" ontouchstart="" id="tab-g3">
+          Group 3<br/><small style="font-weight:400;font-size:.78rem" id="desc-g3">Loading…</small>
+        </div>
+      </div>
+      <div class="field-error" id="err-elective-group">Please select one elective group.</div>
+    </div>
+
+    <!-- Group details (shown when tab selected) -->
+    <div id="elective-g1" hidden>
+      <div class="elective-group">
+        <div class="elective-group-title" id="title-g1">Group 1</div>
+        <div id="content-g1"><!-- rendered by JS --></div>
+      </div>
+    </div>
+
+    <div id="elective-g2" hidden>
+      <div class="elective-group">
+        <div class="elective-group-title" id="title-g2">Group 2</div>
+        <div id="content-g2"><!-- rendered by JS --></div>
+      </div>
+    </div>
+
+    <div id="elective-g3" hidden>
+      <div class="elective-group">
+        <div class="elective-group-title" id="title-g3">Group 3</div>
+        <div id="content-g3"><!-- rendered by JS --></div>
+      </div>
+    </div>
+
+    <div class="field-error" id="err-elective-subject" style="margin-top:4px;">Please select the required subject(s) for your chosen group.</div>
+
+    <div class="actions">
+      <button class="btn outline" onclick="goBack(2)">&larr; Back</button>
+      <button class="btn olive" onclick="goNext(2)">Next: Review &amp; Sign &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ══ SECTION D: Declaration & Review ══ -->
+  <div class="section-panel" id="panel-3">
+    <div class="section-title">
+      Section D &nbsp;<span class="badge">Review &amp; Declaration</span>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-section">
+      <h3>📋 Section A — Learner Information</h3>
+      <div class="summary-row"><span class="label">First Name</span><span class="value" id="sum-firstname">—</span></div>
+      <div class="summary-row"><span class="label">Surname</span><span class="value" id="sum-surname">—</span></div>
+      <div class="summary-row"><span class="label">Student Number</span><span class="value" id="sum-studentno">—</span></div>
+      <div class="summary-row"><span class="label">Class</span><span class="value" id="sum-class">—</span></div>
+      <div class="summary-row"><span class="label">School</span><span class="value" id="sum-school">—</span></div>
+    </div>
+
+    <div class="summary-section">
+      <h3>📚 Section B — Compulsory Subjects</h3>
+      <div class="summary-row"><span class="label">Home Language</span><span class="value" id="sum-homelang">—</span></div>
+      <div class="summary-row"><span class="label">First Additional Language</span><span class="value" id="sum-fal">—</span></div>
+      <div class="summary-row"><span class="label">Life Orientation</span><span class="value">Compulsory</span></div>
+      <div class="summary-row"><span class="label">Mathematics</span><span class="value" id="sum-maths">—</span></div>
+    </div>
+
+    <div class="summary-section">
+      <h3>🎯 Section C — Elective Subjects</h3>
+      <div class="summary-row"><span class="label">Elective Group</span><span class="value" id="sum-elective-group">—</span></div>
+      <div class="summary-row"><span class="label">Compulsory in Group</span><span class="value" id="sum-elective-compulsory">—</span></div>
+      <div class="summary-row"><span class="label">Chosen Subject(s)</span><span class="value" id="sum-elective-choices">—</span></div>
+    </div>
+
+    <!-- Declaration -->
+    <div class="declaration-box">
+      <strong>Declaration</strong><br/>
+      I confirm that the above subject choices are my own and that I have discussed and agreed upon them with my parent/guardian. I understand that this form is <strong>final and binding</strong>.
+    </div>
+
+    <div class="sig-grid">
+      <div class="field">
+        <label for="learner-name-sig">Learner Name (typed) <span class="req">*</span></label>
+        <input type="text" id="learner-name-sig" placeholder="Type full name as signature"/>
+        <div class="field-error" id="err-learnersig">Please type your name to sign.</div>
+      </div>
+      <div class="field">
+        <label for="learner-date">Date <span class="req">*</span></label>
+        <input type="date" id="learner-date"/>
+        <div class="field-error" id="err-learnerdate">Please enter the date.</div>
+      </div>
+      <div class="field">
+        <label for="guardian-sig">Parent/Guardian Name (typed) <span class="req">*</span></label>
+        <input type="text" id="guardian-sig" placeholder="Type parent/guardian name"/>
+        <div class="field-error" id="err-guardiansig">Please type the parent/guardian name.</div>
+      </div>
+      <div class="field">
+        <label for="guardian-date">Date <span class="req">*</span></label>
+        <input type="date" id="guardian-date"/>
+        <div class="field-error" id="err-guardiandate">Please enter the date.</div>
+      </div>
+    </div>
+
+    <!-- Official Use — admin locked -->
+    <div id="official-locked-view" class="official-locked">
+      <div class="official-locked-left">
+        <div class="lock-icon-circle">&#128274;</div>
+        <div>
+          <strong>For Official Use Only</strong>
+          <p>This section is restricted to authorised administrators.</p>
+        </div>
+      </div>
+      <button class="btn outline" style="min-height:38px;padding:8px 16px;font-size:.85rem;" onclick="openOfficialPinModal()">&#128274; Unlock</button>
+    </div>
+
+    <div id="official-unlocked-view" class="official-box" style="display:none;">
+      <div class="official-unlocked-header">
+        <h4>For Official Use Only</h4>
+        <button class="btn-lock-sm" onclick="lockOfficial()">&#128274; Lock</button>
+      </div>
+      <div class="official-grid">
+        <div class="field">
+          <label>Received By</label>
+          <input type="text" id="official-received-by" placeholder="Staff name"/>
+        </div>
+        <div class="field">
+          <label>Received Date</label>
+          <input type="date" id="official-received-date"/>
+        </div>
+        <div class="field">
+          <label>HOD Approval</label>
+          <input type="text" id="official-hod" placeholder="HOD signature/name"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn outline" onclick="goBack(3)">&larr; Back</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn outline" onclick="generatePDF()">⬇ Download PDF</button>
+        <button class="btn olive" onclick="submitForm()">✓ Submit Form</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Submitted ══ -->
+  <div class="submitted-screen" id="submitted-screen">
+    <div class="submitted-icon">✓</div>
+    <h2>Form Submitted!</h2>
+    <p>Your Grade 10 subject choices have been recorded.<br/>Please hand a signed printed copy to your class teacher.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn outline" onclick="generatePDF()">⬇ Download PDF Copy</button>
+      <button class="btn olive" onclick="resetForm()">Start New Form</button>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- Official Use PIN Modal -->
+<div class="modal-overlay" id="officialPinModal" role="dialog" aria-modal="true" aria-labelledby="officialModalTitle">
+  <div class="modal-box">
+    <div style="font-size:2rem;margin-bottom:10px;"></div><!-- /container -->#128274;</div>
+    <h3 id="officialModalTitle">Administrator Access</h3>
+    <p>Enter your administrator PIN to access the <strong>For Official Use Only</strong> section.</p>
+    <input type="password" class="pin-input" id="officialPinInput" maxlength="12" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" onkeydown="if(event.key==='Enter') checkOfficialPin()"\/>
+    <div class="pin-err" id="officialPinErr"></div>
+    <div class="modal-actions">
+      <button class="btn olive" onclick="checkOfficialPin()">Unlock</button>
+      <button class="btn outline" onclick="closeOfficialPinModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+let currentPanel = 0;
+const totalPanels = 4;
+let selectedElectiveGroup = null;
+let selectedSchool = null;
+let selectedElectiveSubjects = []; // handles both single and multi-select
+
+// ══════════════════════════════════════════════════════
+// SCHOOL CONFIGURATIONS
+// ══════════════════════════════════════════════════════
+const schoolConfigs = {
+
+  'BASA Tutorial Institute (Riversands)': {
+    classes: ['9A', '9D', '9L'],
+    homeLang: ['English', 'IsiZulu', 'Sepedi'],
+    fal: ['English', 'Afrikaans'],
+    maths: ['Mathematics', 'Mathematical Literacy'],
+    // Maths rules: Mathematics → hide G3 | MathLit → hide G2
+    mathsRule: { Mathematics: ['g1','g2'], 'Mathematical Literacy': ['g1','g3'] },
+    electives: {
+      g1: {
+        compulsory: ['Accounting', 'Business Studies'],
+        choices: ['Economics', 'Tourism', 'Computer Applications Technology'],
+        choiceCount: 1,
+        mutuallyExclusive: null,
+        tabDesc: 'Accounting & Business Studies + choose 1',
+        groupTitle: 'Group 1 — Accounting & Business Studies (Compulsory) + 1 Additional Subject'
+      },
+      g2: {
+        compulsory: ['Physical Sciences'],
+        choices: ['Computer Applications Technology', 'Geography', 'Life Sciences', 'Tourism'],
+        choiceCount: 2,
+        mutuallyExclusive: [['Computer Applications Technology', 'Tourism']],
+        tabDesc: 'Physical Sciences + choose 2 more',
+        groupTitle: 'Group 2 — Physical Sciences (Compulsory) + 2 Additional Subjects'
+      },
+      g3: {
+        compulsory: ['History', 'Tourism'],
+        choices: ['Business Studies', 'Dramatic Arts'],
+        choiceCount: 1,
+        mutuallyExclusive: null,
+        tabDesc: 'History & Tourism + choose 1',
+        groupTitle: 'Group 3 — History & Tourism (Compulsory) + 1 Additional Subject'
+      }
+    }
+  },
+
+  'BASA Protea Glen Combined School': {
+    classes: ['9A', '9B', '9C', '9D', '9E'],
+    homeLang: ['English', 'IsiZulu', 'Sesotho'],
+    fal: ['English', 'Afrikaans'],
+    maths: ['Mathematics', 'Mathematical Literacy'],
+    // Maths rules: Mathematics → hide G3 | MathLit → only G1 and G3 (hide G2)
+    mathsRule: { Mathematics: ['g1','g2'], 'Mathematical Literacy': ['g1','g3'] },
+    electives: {
+      g1: {
+        compulsory: ['Accounting', 'Business Studies', 'Economics'],
+        choices: ['Computer Applications Technology', 'Tourism'],
+        choiceCount: 1,
+        mutuallyExclusive: null,
+        tabDesc: 'Accounting, Business Studies & Economics + choose 1',
+        groupTitle: 'Group 1 — Accounting, Business Studies & Economics (Compulsory) + 1 Additional Subject'
+      },
+      g2: {
+        compulsory: ['Geography', 'Life Sciences', 'Physical Sciences'],
+        choices: ['Computer Applications Technology', 'Tourism'],
+        choiceCount: 1,
+        mutuallyExclusive: null,
+        tabDesc: 'Geography, Life Sciences & Physical Sciences + choose 1',
+        groupTitle: 'Group 2 — Geography, Life Sciences & Physical Sciences (Compulsory) + 1 Additional Subject'
+      },
+      g3: {
+        compulsory: ['History', 'Tourism'],
+        choices: null, // pair-based
+        pairChoices: [
+          { pair: ['Business Studies', 'Economics'], label: 'Business Studies & Economics' },
+          { pair: ['Geography', 'Life Sciences'],    label: 'Geography & Life Sciences' }
+        ],
+        choiceCount: 1, // 1 pair
+        mutuallyExclusive: null,
+        tabDesc: 'History & Tourism + choose 1 pair',
+        groupTitle: 'Group 3 — History & Tourism (Compulsory) + 1 Subject Pair'
+      }
+    }
+  }
+};
+
+// ══════════════════════════════════════════════════════
+// SCHOOL SELECTION HANDLER
+// ══════════════════════════════════════════════════════
+function initializeSchoolListener() {
+  const schoolSelect = document.getElementById('school');
+  if (schoolSelect) {
+    schoolSelect.addEventListener('change', e => {
+      selectedSchool = e.target.value;
+      updateSubjectsForSchool(selectedSchool);
+      updateMathsNote();
+    });
+  }
+}
+
+function updateSubjectsForSchool(school) {
+  if (!school || !schoolConfigs[school]) return;
+  const config = schoolConfigs[school];
+
+  // Reset all selections
+  document.querySelectorAll('.choice-card.selected').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.field-error.show').forEach(e => e.classList.remove('show'));
+  selectedElectiveGroup = null;
+  selectedElectiveSubjects = [];
+
+  // Update class options
+  updateClassOptions(config.classes);
+  // Clear class selection
+  document.getElementById('grade9class').value = '';
+
+  // Update home language cards
+  updateSubjectGroup('home-lang-group', 'home-lang', config.homeLang);
+  // Update FAL cards
+  updateSubjectGroup('fal-group', 'fal', config.fal);
+  // Render elective groups
+  renderAllElectiveGroups(config.electives);
+  // Show all group tabs (maths not yet chosen)
+  showAllGroupTabs();
+  // Hide all detail panels
+  ['g1','g2','g3'].forEach(g => {
+    const sec = document.getElementById('elective-' + g);
+    if (sec) sec.hidden = true;
+  });
+}
+
+function updateSubjectGroup(groupId, dataGroup, subjects) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  group.innerHTML = subjects.map(subj =>
+    `<div class="choice-card" data-group="${dataGroup}" data-val="${subj}" onclick="selectCard(this)" ontouchstart="">${subj}</div>`
+  ).join('');
+}
+
+function updateClassOptions(classes) {
+  const classSelect = document.getElementById('grade9class');
+  if (!classSelect) return;
+  if (!classes || classes.length === 0) {
+    classSelect.innerHTML = '<option value="">-- Select School First --</option>';
+    classSelect.disabled = true;
+  } else {
+    classSelect.innerHTML = '<option value="">-- Select Class --</option>' +
+      classes.map(cls => `<option value="${cls}">${cls}</option>`).join('');
+    classSelect.disabled = false;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER ELECTIVE GROUP DETAILS
+// ══════════════════════════════════════════════════════
+function renderAllElectiveGroups(electives) {
+  ['g1','g2','g3'].forEach(key => {
+    const cfg = electives[key];
+    if (!cfg) return;
+
+    // Update tab card description
+    const descEl = document.getElementById('desc-' + key);
+    if (descEl) descEl.textContent = cfg.tabDesc;
+
+    // Update group detail title
+    const titleEl = document.getElementById('title-' + key);
+    if (titleEl) titleEl.textContent = cfg.groupTitle;
+
+    // Render content inside group detail
+    const contentEl = document.getElementById('content-' + key);
+    if (!contentEl) return;
+
+    let html = '';
+
+    // ── Compulsory subject cards ──
+    if (cfg.compulsory && cfg.compulsory.length) {
+      html += `<div style="margin-bottom:8px;font-size:.78rem;font-weight:700;color:var(--olive);text-transform:uppercase;letter-spacing:.04em;">★ Compulsory Subjects</div>`;
+      html += `<div class="choice-group" style="margin-bottom:14px;">`;
+      cfg.compulsory.forEach(subj => {
+        html += `<div class="choice-card compulsory">${subj}<br/><small style="font-weight:400;font-size:.75rem;color:#777">Compulsory</small></div>`;
+      });
+      html += `</div>`;
+    }
+
+    // ── Choice subjects ──
+    if (cfg.pairChoices) {
+      // Protea Glen G3: pair-based
+      html += `<div style="margin-bottom:8px;font-size:.78rem;font-weight:700;color:var(--olive-dark);text-transform:uppercase;letter-spacing:.04em;">Choose 1 Subject Pair</div>`;
+      html += `<div class="choice-group">`;
+      cfg.pairChoices.forEach(item => {
+        html += `<div class="choice-card" data-group="elective-subj" data-subject-group="${key}" data-val="${item.label}" data-subjects="${item.pair.join('|')}" onclick="selectCard(this)" ontouchstart="">${item.label}</div>`;
+      });
+      html += `</div>`;
+    } else if (cfg.choices && cfg.choices.length) {
+      const isMulti = cfg.choiceCount > 1;
+      const choiceLabel = isMulti
+        ? `Choose ${cfg.choiceCount} Subjects`
+        : `Choose 1 Subject`;
+      html += `<div style="margin-bottom:8px;font-size:.78rem;font-weight:700;color:var(--olive-dark);text-transform:uppercase;letter-spacing:.04em;">${choiceLabel}</div>`;
+
+      if (cfg.mutuallyExclusive) {
+        cfg.mutuallyExclusive.forEach(pair => {
+          html += `<div class="warning-box" style="margin-bottom:10px;">⚠ <strong>${pair[0]}</strong> and <strong>${pair[1]}</strong> cannot be selected together.</div>`;
+        });
+      }
+
+      html += `<div class="choice-group">`;
+      cfg.choices.forEach(subj => {
+        html += `<div class="choice-card" data-group="elective-subj" data-subject-group="${key}" data-val="${subj}" onclick="selectCard(this)" ontouchstart="">${subj}</div>`;
+      });
+      html += `</div>`;
+
+      if (isMulti) {
+        html += `<div class="multiselect-counter" id="counter-${key}">0 of ${cfg.choiceCount} subjects selected</div>`;
+      }
+    }
+
+    contentEl.innerHTML = html;
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// MATHS → GROUP VISIBILITY
+// ══════════════════════════════════════════════════════
+function updateGroupVisibility() {
+  if (!selectedSchool) return;
+  const config = schoolConfigs[selectedSchool];
+  if (!config) return;
+  const maths = getSelected('maths');
+
+  if (!maths) {
+    showAllGroupTabs();
+    return;
+  }
+
+  const allowed = config.mathsRule[maths];
+  if (!allowed) {
+    showAllGroupTabs();
+    return;
+  }
+
+  // Show/hide tab cards
+  ['g1','g2','g3'].forEach(key => {
+    const tab = document.getElementById('tab-' + key);
+    if (!tab) return;
+    if (allowed.includes(key)) {
+      tab.classList.remove('group-card-hidden');
+    } else {
+      tab.classList.add('group-card-hidden');
+      // If user had selected this group, clear it
+      if (selectedElectiveGroup === key) {
+        clearElectiveSelection();
+      }
+    }
+  });
+}
+
+function showAllGroupTabs() {
+  ['g1','g2','g3'].forEach(key => {
+    const tab = document.getElementById('tab-' + key);
+    if (tab) tab.classList.remove('group-card-hidden');
+  });
+}
+
+function clearElectiveSelection() {
+  selectedElectiveGroup = null;
+  selectedElectiveSubjects = [];
+  document.querySelectorAll('#elective-group-choice .choice-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.choice-card[data-group="elective-subj"]').forEach(c => c.classList.remove('selected'));
+  ['g1','g2','g3'].forEach(g => {
+    const s = document.getElementById('elective-' + g);
+    if (s) s.hidden = true;
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// MATHS NOTE (dynamic)
+// ══════════════════════════════════════════════════════
+function updateMathsNote() {
+  const note = document.getElementById('maths-dynamic-note');
+  if (!note || !selectedSchool) return;
+  const config = schoolConfigs[selectedSchool];
+  if (!config) return;
+  note.innerHTML =
+    `<strong>Mathematics</strong>: Elective Groups 1 &amp; 2 will be available &nbsp;|&nbsp; ` +
+    `<strong>Mathematical Literacy</strong>: Elective Groups 1 &amp; 3 will be available`;
+}
+
+// ══════════════════════════════════════════════════════
+// CARD SELECTION
+// ══════════════════════════════════════════════════════
+function selectCard(card) {
+  if (card.classList.contains('compulsory')) return;
+  const group = card.dataset.group;
+
+  // Handle elective subject selection
+  if (group === 'elective-subj') {
+    if (!selectedElectiveGroup) { showToast('Please select an elective group first.', true); return; }
+    if (card.dataset.subjectGroup !== selectedElectiveGroup) return;
+
+    const cfg = getElectiveGroupConfig();
+    if (cfg && cfg.choiceCount > 1) {
+      handleMultiSelectCard(card, cfg);
+      return;
+    }
+    // Single select
+    document.querySelectorAll(`.choice-card[data-group="elective-subj"][data-subject-group="${selectedElectiveGroup}"]`).forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedElectiveSubjects = [card.dataset.val];
+    setError('err-elective-subject', false);
+    return;
+  }
+
+  // Single-select for all other groups
+  document.querySelectorAll(`.choice-card[data-group="${group}"]`).forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+
+  const errEl = document.getElementById('err-' + group);
+  if (errEl) errEl.classList.remove('show');
+
+  if (group === 'home-lang') updateFAL();
+
+  // When maths changes, update group visibility
+  if (group === 'maths') {
+    // Clear any existing elective selection if group becomes hidden
+    updateGroupVisibility();
+  }
+}
+
+function handleMultiSelectCard(card, cfg) {
+  const val = card.dataset.val;
+  const isSelected = card.classList.contains('selected');
+
+  if (isSelected) {
+    // Deselect
+    card.classList.remove('selected');
+    selectedElectiveSubjects = selectedElectiveSubjects.filter(v => v !== val);
+  } else {
+    // Check max
+    if (selectedElectiveSubjects.length >= cfg.choiceCount) {
+      showToast(`You can only choose ${cfg.choiceCount} subjects from this group.`, true);
+      return;
+    }
+    // Check mutual exclusion
+    if (cfg.mutuallyExclusive) {
+      for (const pair of cfg.mutuallyExclusive) {
+        if (pair.includes(val) && pair.some(p => selectedElectiveSubjects.includes(p))) {
+          showToast(`⚠ ${pair[0]} and ${pair[1]} cannot be selected together.`, true);
+          return;
+        }
+      }
+    }
+    card.classList.add('selected');
+    selectedElectiveSubjects.push(val);
+  }
+
+  // Update counter
+  updateMultiSelectCounter();
+  setError('err-elective-subject', false);
+}
+
+function updateMultiSelectCounter() {
+  if (!selectedElectiveGroup) return;
+  const cfg = getElectiveGroupConfig();
+  if (!cfg || cfg.choiceCount <= 1) return;
+  const counter = document.getElementById('counter-' + selectedElectiveGroup);
+  if (!counter) return;
+  const count = selectedElectiveSubjects.length;
+  counter.textContent = `${count} of ${cfg.choiceCount} subjects selected`;
+  counter.classList.toggle('complete', count === cfg.choiceCount);
+}
+
+function selectElectiveGroup(card) {
+  // Respect hidden groups
+  if (card.classList.contains('group-card-hidden')) return;
+
+  document.querySelectorAll('#elective-group-choice .choice-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  selectedElectiveGroup = card.dataset.val;
+  selectedElectiveSubjects = [];
+
+  ['g1','g2','g3'].forEach(g => {
+    const section = document.getElementById('elective-' + g);
+    if (section) section.hidden = (g !== selectedElectiveGroup);
+    // Deselect all cards in hidden groups
+    if (g !== selectedElectiveGroup) {
+      document.querySelectorAll(`.choice-card[data-group="elective-subj"][data-subject-group="${g}"]`).forEach(c => c.classList.remove('selected'));
+    }
+  });
+  // Deselect cards in newly shown group (clear previous)
+  document.querySelectorAll(`.choice-card[data-group="elective-subj"][data-subject-group="${selectedElectiveGroup}"]`).forEach(c => c.classList.remove('selected'));
+
+  setError('err-elective-group', false);
+  setError('err-elective-subject', false);
+  updateMultiSelectCounter();
+}
+
+// ══════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════
+function getElectiveGroupConfig() {
+  if (!selectedSchool || !selectedElectiveGroup) return null;
+  const config = schoolConfigs[selectedSchool];
+  if (!config) return null;
+  return config.electives[selectedElectiveGroup];
+}
+
+function getSelected(group) {
+  if (group === 'elective-subj') {
+    return selectedElectiveSubjects.length ? selectedElectiveSubjects.join(', ') : null;
+  }
+  const el = document.querySelector(`.choice-card[data-group="${group}"].selected`);
+  return el ? el.dataset.val : null;
+}
+
+function getElectiveCompulsoryLabel() {
+  const cfg = getElectiveGroupConfig();
+  if (!cfg) return '—';
+  return cfg.compulsory && cfg.compulsory.length ? cfg.compulsory.join(', ') : 'None';
+}
+
+function updateFAL() {
+  const homeLang = getSelected('home-lang');
+  const falCards = document.querySelectorAll('[data-group="fal"]');
+  falCards.forEach(c => c.classList.remove('selected'));
+  if (homeLang === 'English') {
+    const afr = document.querySelector('[data-group="fal"][data-val="Afrikaans"]');
+    if (afr) afr.classList.add('selected');
+    const engCard = document.querySelector('[data-group="fal"][data-val="English"]');
+    if (engCard) { engCard.style.opacity = '.4'; engCard.style.pointerEvents = 'none'; engCard.title = 'English cannot be FAL if already chosen as Home Language'; }
+  } else {
+    const engCard = document.querySelector('[data-group="fal"][data-val="English"]');
+    if (engCard) { engCard.style.opacity = ''; engCard.style.pointerEvents = ''; engCard.title = ''; }
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════
+function goNext(from) {
+  if (!validatePanel(from)) return;
+  if (from === 3) { submitForm(); return; }
+  showPanel(from + 1);
+}
+function goBack(from) { showPanel(from - 1); }
+
+function showPanel(index) {
+  document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById('panel-' + index);
+  if (!panel) return;
+  panel.classList.add('active');
+  currentPanel = index;
+  updateProgress(index);
+  // Re-apply group visibility when entering Section C
+  if (index === 2) updateGroupVisibility();
+  if (index === 3) populateSummary();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateProgress(index) {
+  for (let i = 0; i < totalPanels; i++) {
+    const dot = document.getElementById('dot-' + i);
+    if (!dot) continue;
+    dot.className = 'step-dot';
+    if (i < index) dot.classList.add('done');
+    else if (i === index) dot.classList.add('active');
+  }
+  document.getElementById('progress-label').textContent = `Step ${index + 1} of ${totalPanels}`;
+}
+
+// ══════════════════════════════════════════════════════
+// VALIDATION
+// ══════════════════════════════════════════════════════
+function setError(id, show) { const el = document.getElementById(id); if (el) el.classList.toggle('show', show); }
+function markField(id, error) { const el = document.getElementById(id); if (el) el.classList.toggle('error', error); }
+
+function validatePanel(index) {
+  let ok = true;
+
+  if (index === 0) {
+    ['firstname','surname','studentno','grade9class','school'].forEach(f => {
+      const el = document.getElementById(f);
+      const empty = !el || !el.value.trim();
+      setError('err-' + f, empty);
+      markField(f, empty);
+      if (empty) ok = false;
+    });
+  }
+
+  if (index === 1) {
+    [{ group:'home-lang', err:'err-home-lang' },
+     { group:'fal',       err:'err-fal' },
+     { group:'maths',     err:'err-maths' }].forEach(({ group, err }) => {
+      const missing = !getSelected(group);
+      setError(err, missing);
+      if (missing) ok = false;
+    });
+  }
+
+  if (index === 2) {
+    if (!selectedElectiveGroup) {
+      setError('err-elective-group', true);
+      ok = false;
+    } else {
+      setError('err-elective-group', false);
+      const cfg = getElectiveGroupConfig();
+      const errEl = document.getElementById('err-elective-subject');
+
+      if (cfg && cfg.choiceCount > 1) {
+        // Multi-select validation
+        const needed = cfg.choiceCount;
+        if (selectedElectiveSubjects.length < needed) {
+          if (errEl) errEl.textContent = `Please select ${needed} subjects from this group. ${cfg.mutuallyExclusive ? cfg.mutuallyExclusive.map(p => p.join(' and ')).join(', ') + ' cannot be selected together.' : ''}`;
+          setError('err-elective-subject', true);
+          ok = false;
+        } else {
+          setError('err-elective-subject', false);
+        }
+      } else {
+        // Single / pair select validation
+        const missing = !getSelected('elective-subj');
+        if (errEl) errEl.textContent = 'Please select the required subject(s) for your chosen group.';
+        setError('err-elective-subject', missing);
+        if (missing) ok = false;
+      }
+    }
+  }
+
+  if (index === 3) {
+    [{ id:'learner-name-sig', err:'err-learnersig' },
+     { id:'learner-date',     err:'err-learnerdate' },
+     { id:'guardian-sig',     err:'err-guardiansig' },
+     { id:'guardian-date',    err:'err-guardiandate' }].forEach(({ id, err }) => {
+      const el = document.getElementById(id);
+      const empty = !el || !el.value.trim();
+      setError(err, empty);
+      markField(id, empty);
+      if (empty) ok = false;
+    });
+  }
+
+  if (!ok) showToast('⚠ Please complete all required fields.', true);
+  return ok;
+}
+
+// ══════════════════════════════════════════════════════
+// SUMMARY
+// ══════════════════════════════════════════════════════
+function populateSummary() {
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (val) { el.textContent = val; el.classList.remove('missing'); }
+    else { el.textContent = 'Not selected'; el.classList.add('missing'); }
+  };
+  set('sum-firstname',  document.getElementById('firstname')?.value || '');
+  set('sum-surname',    document.getElementById('surname')?.value || '');
+  set('sum-studentno',  document.getElementById('studentno')?.value || '');
+  set('sum-class',      document.getElementById('grade9class')?.value || '');
+  set('sum-school',     document.getElementById('school')?.value || '');
+  set('sum-homelang',   getSelected('home-lang'));
+  set('sum-fal',        getSelected('fal'));
+  set('sum-maths',      getSelected('maths'));
+
+  const groupNum = selectedElectiveGroup ? selectedElectiveGroup.substring(1) : null;
+  set('sum-elective-group', groupNum ? `Group ${groupNum}` : null);
+  set('sum-elective-compulsory', selectedElectiveGroup ? getElectiveCompulsoryLabel() : null);
+  set('sum-elective-choices', getSelected('elective-subj'));
+}
+
+// ══════════════════════════════════════════════════════
+// SUBMIT
+// ══════════════════════════════════════════════════════
+function submitForm() {
+  if (!validatePanel(3)) return;
+
+  // Collect form data
+  const formData = {
+    firstName: document.getElementById('firstname').value,
+    surname: document.getElementById('surname').value,
+    studentNumber: document.getElementById('studentno').value,
+    grade9Class: document.getElementById('grade9class').value,
+    school: document.getElementById('school').value,
+    homeLanguage: getSelected('home-lang'),
+    firstAdditionalLanguage: getSelected('fal'),
+    mathematics: getSelected('maths'),
+    electiveGroup: selectedElectiveGroup,
+    electiveSubjects: selectedElectiveSubjects,
+    learnerSignature: document.getElementById('learner-name-sig').value,
+    learnerDate: document.getElementById('learner-date').value,
+    guardianSignature: document.getElementById('guardian-sig').value,
+    guardianDate: document.getElementById('guardian-date').value
+  };
+
+  // Submit to backend
+  fetch('/api/submit-grade10', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(formData)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('submitted-screen').classList.add('show');
+      showToast('✓ Form submitted successfully!');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      showToast('❌ Submission failed: ' + data.message);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showToast('❌ Submission failed. Please try again.');
+  });
+}
+
+function resetForm() { location.reload(); }
+
+// ══════════════════════════════════════════════════════
+// PDF GENERATION
+// ══════════════════════════════════════════════════════
+function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const gold = [201,162,39], olive = [61,79,34], bg = [250,247,236];
+  const W = doc.internal.pageSize.width;
+  let y = 0;
+
+  // Header
+  doc.setFillColor(...olive); doc.rect(0,0,W,28,'F');
+  doc.setFillColor(...gold);  doc.rect(0,28,W,2,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('BASA SCHOOLS | Grade 10 Subject Selection 2026/2027', W/2, 13, { align:'center' });
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text('CONFIDENTIAL | FOR GRADE 9 LEARNERS SELECTING GRADE 10 SUBJECTS', W/2, 21, { align:'center' });
+  y = 36;
+
+  // Section A
+  sectionHeader(doc, 'SECTION A: LEARNER INFORMATION', y, gold, olive); y += 10;
+  const pdfFirstName = document.getElementById('firstname')?.value || '';
+  const pdfSurname   = document.getElementById('surname')?.value || '';
+  const pdfName = `${pdfSurname}${pdfSurname && pdfFirstName ? ', ' : ''}${pdfFirstName}`.trim();
+  [
+    ['Learner Name',  pdfName  || '___________________________'],
+    ['Student Number', document.getElementById('studentno')?.value || ''],
+    ['Grade 9 Class',  document.getElementById('grade9class')?.value || ''],
+    ['School',         document.getElementById('school')?.value || ''],
+  ].forEach(([label, val]) => {
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...olive); doc.text(label+':', 14, y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(44,44,44); doc.text(val || '___________________________', 70, y);
+    doc.setDrawColor(180,180,180); doc.setLineWidth(0.3); doc.line(14,y+1.5,W-14,y+1.5);
+    y += 8;
+  });
+  y += 4;
+
+  // Section B
+  sectionHeader(doc, 'SECTION B: COMPULSORY SUBJECTS', y, gold, olive); y += 10;
+  [
+    ['Home Language',             getSelected('home-lang') || '_________________'],
+    ['First Additional Language', getSelected('fal')       || '_________________'],
+    ['Life Orientation',          'Compulsory — No choice required'],
+    ['Mathematics / Math Lit',    getSelected('maths')     || '_________________'],
+  ].forEach(([label, val]) => {
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...olive); doc.text(label+':', 14, y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(44,44,44); doc.text(val, 70, y);
+    doc.setDrawColor(180,180,180); doc.setLineWidth(0.3); doc.line(14,y+1.5,W-14,y+1.5);
+    y += 8;
+  });
+  y += 4;
+
+  // Section C
+  sectionHeader(doc, 'SECTION C: ELECTIVE SUBJECTS', y, gold, olive); y += 10;
+  if (selectedElectiveGroup) {
+    const cfg = getElectiveGroupConfig();
+    const groupNum = selectedElectiveGroup.substring(1);
+    const compulsoryStr = cfg && cfg.compulsory ? cfg.compulsory.join(', ') : 'None';
+    const chosenStr = getSelected('elective-subj') || 'None selected';
+    [
+      ['Elective Group',       `Group ${groupNum}`],
+      ['Compulsory Subjects',  compulsoryStr],
+      ['Chosen Subject(s)',    chosenStr],
+    ].forEach(([label, val]) => {
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...olive); doc.text(label+':', 14, y);
+      doc.setFont('helvetica','normal'); doc.setTextColor(44,44,44);
+      const wrapped = doc.splitTextToSize(val, W-85);
+      doc.text(wrapped, 70, y);
+      doc.setDrawColor(180,180,180); doc.setLineWidth(0.3); doc.line(14,y+1.5,W-14,y+1.5);
+      y += Math.max(8, wrapped.length * 5 + 3);
+    });
+  }
+  y += 6;
+
+  // Section D — Declaration
+  sectionHeader(doc, 'SECTION D: DECLARATION & SIGNATURES', y, gold, olive); y += 10;
+  doc.setFontSize(8.5); doc.setFont('helvetica','italic'); doc.setTextColor(80,80,80);
+  const decl = 'I confirm that the above subject choices are my own and that I have discussed and agreed upon them with my parent/guardian. I understand that this form is final and binding.';
+  const lines = doc.splitTextToSize(decl, W-28);
+  doc.text(lines, 14, y); y += lines.length * 5 + 4;
+
+  const lsig  = document.getElementById('learner-name-sig')?.value || '';
+  const ldate = document.getElementById('learner-date')?.value || '';
+  const gsig  = document.getElementById('guardian-sig')?.value || '';
+  const gdate = document.getElementById('guardian-date')?.value || '';
+
+  doc.setFont('helvetica','normal'); doc.setTextColor(44,44,44); doc.setFontSize(9);
+  doc.setFont('helvetica','bold'); doc.setTextColor(...olive);
+  doc.text('Learner Signature:', 14, y); doc.setFont('helvetica','normal'); doc.setTextColor(44,44,44); doc.text(lsig, 70, y);
+  doc.text('Date:', 130, y); doc.text(ldate, 145, y);
+  doc.setDrawColor(180,180,180); doc.setLineWidth(0.3); doc.line(14,y+1.5,W-14,y+1.5); y += 9;
+
+  doc.setFont('helvetica','bold'); doc.setTextColor(...olive);
+  doc.text('Parent/Guardian Signature:', 14, y); doc.setFont('helvetica','normal'); doc.setTextColor(44,44,44); doc.text(gsig, 70, y);
+  doc.text('Date:', 130, y); doc.text(gdate, 145, y);
+  doc.setDrawColor(180,180,180); doc.setLineWidth(0.3); doc.line(14,y+1.5,W-14,y+1.5); y += 12;
+
+  // Official Use box
+  doc.setFillColor(...bg); doc.setDrawColor(...gold); doc.setLineWidth(0.5); doc.rect(14,y,W-28,24,'FD');
+  doc.setFontSize(7); doc.setFont('helvetica','bolditalic'); doc.setTextColor(150,150,150);
+  doc.text('FOR OFFICIAL USE ONLY', 18, y+5);
+  doc.setFont('helvetica','normal'); doc.setTextColor(44,44,44); doc.setFontSize(8);
+  doc.text('Received by: _______________________________', 18, y+12);
+  doc.text('Date: _______________', 110, y+12);
+  doc.text('HOD Approval: _____________________________', 18, y+20);
+  doc.text('Stamp: _______________', 110, y+20);
+
+  // Footer
+  const pageH = doc.internal.pageSize.height;
+  doc.setDrawColor(...gold); doc.setLineWidth(0.5); doc.line(14,pageH-14,W-14,pageH-14);
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, pageH-8);
+  doc.text('— BASA Schools Grade 10 Subject Selection 2026/2027 —', W/2, pageH-8, { align:'center' });
+  doc.text('Page 1 of 1', W-14, pageH-8, { align:'right' });
+
+  const surname   = (document.getElementById('surname')?.value   || 'student').trim().replace(/\s/g,'');
+  const firstname = (document.getElementById('firstname')?.value || '').trim().replace(/\s/g,'');
+  const cls       = (document.getElementById('grade9class')?.value || 'class').trim().replace(/\s/g,'');
+  doc.save(`BASA_Grade10_SubjectChoice_${surname}_${firstname}_${cls}.pdf`);
+  showToast('✓ PDF downloaded!');
+}
+
+function sectionHeader(doc, title, y, gold, olive) {
+  doc.setFillColor(...olive);
+  doc.rect(14, y-5, doc.internal.pageSize.width-28, 7, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(9); doc.setFont('helvetica','bold');
+  doc.text(title, 17, y);
+}
+
+// ══════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg, warn=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = warn ? '#7a2323' : '';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3400);
+}
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+window.onload = function () {
+  document.getElementById('learner-date').value  = new Date().toISOString().split('T')[0];
+  document.getElementById('guardian-date').value = new Date().toISOString().split('T')[0];
+  // Initialize class select as disabled
+  updateClassOptions([]);
+  initializeSchoolListener();
+};
+
+// ══════════════════════════════════════════════════════
+// ADMIN PIN — OFFICIAL USE SECTION
+// ══════════════════════════════════════════════════════
+const OFFICIAL_ADMIN_PIN = 'BASA2025'; // ← Change this PIN as needed
+
+function openOfficialPinModal() {
+  const inp = document.getElementById('officialPinInput');
+  const err = document.getElementById('officialPinErr');
+  if (inp) inp.value = '';
+  if (err) err.textContent = '';
+  const modal = document.getElementById('officialPinModal');
+  if (modal) {
+    modal.classList.add('open');
+    setTimeout(() => inp && inp.focus(), 120);
+  }
+}
+
+function closeOfficialPinModal() {
+  const modal = document.getElementById('officialPinModal');
+  if (modal) modal.classList.remove('open');
+}
+
+function checkOfficialPin() {
+  const inp = document.getElementById('officialPinInput');
+  const err = document.getElementById('officialPinErr');
+  if (!inp) return;
+  if (inp.value === OFFICIAL_ADMIN_PIN) {
+    closeOfficialPinModal();
+    document.getElementById('official-locked-view').style.display  = 'none';
+    document.getElementById('official-unlocked-view').style.display = 'block';
+    showToast('Official Use section unlocked.');
+  } else {
+    if (err) err.textContent = 'Incorrect PIN. Please try again.';
+    inp.value = '';
+    inp.focus();
+  }
+}
+
+function lockOfficial() {
+  document.getElementById('official-unlocked-view').style.display = 'none';
+  document.getElementById('official-locked-view').style.display   = 'flex';
+  showToast('Official Use section locked.');
+}
+
+// Close modal on overlay click
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('officialPinModal');
+  if (modal) {
+    modal.addEventListener('click', e => {
+      if (e.target === modal) closeOfficialPinModal();
+    });
+  }
+});
+</script>
+</body>
+</html>
