@@ -153,6 +153,13 @@
             `).join('');
         }
 
+        function getLearnerNames(record) {
+            if (record.learners && record.learners.length) {
+                return record.learners.map(l => `${l.name || '—'} (Gr ${l.grade || '—'})`).join(', ');
+            }
+            return record.learnerName ? `${record.learnerName} (Gr ${record.grade || '—'})` : '—';
+        }
+
         function renderAttendanceTable(attendance) {
             const tbody = document.getElementById('attendance-body');
             if (attendance.length === 0) {
@@ -163,11 +170,10 @@
             tbody.innerHTML = attendance.map(record => `
                 <tr>
                     <td>${new Date(record.submittedAt).toLocaleDateString()}</td>
-                    <td>${record.eventType}</td>
-                    <td>${record.title} ${record.firstName} ${record.surname}</td>
-                    <td>${record.learnerName}</td>
-                    <td>${record.grade}</td>
-                    <td>${record.campus}</td>
+                    <td>${record.eventType || '—'}</td>
+                    <td>${record.title || ''} ${record.firstName || ''} ${record.surname || ''}</td>
+                    <td colspan="2">${getLearnerNames(record)}</td>
+                    <td>${record.campus || '—'}</td>
                 </tr>
             `).join('');
         }
@@ -183,8 +189,12 @@
                 record.surname || '',
                 record.mobile || '',
                 record.email || '',
-                record.learnerName || '',
-                record.grade || ''
+                record.learners && record.learners.length
+                    ? record.learners.map(l => l.name || '').join('; ')
+                    : (record.learnerName || ''),
+                record.learners && record.learners.length
+                    ? record.learners.map(l => l.grade || '').join('; ')
+                    : (record.grade || '')
             ]);
             const wb = XLSX.utils.book_new();
             const wsData = [
@@ -248,8 +258,8 @@
                                     <td style="padding: 10px; border: 1px solid #d8d8d8;">${record.surname || ''}</td>
                                     <td style="padding: 10px; border: 1px solid #d8d8d8;">${record.mobile || ''}</td>
                                     <td style="padding: 10px; border: 1px solid #d8d8d8;">${record.email || ''}</td>
-                                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${record.learnerName || ''}</td>
-                                    <td style="padding: 10px; border: 1px solid #d8d8d8; text-align: center;">${record.grade || ''}</td>
+                                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${record.learners && record.learners.length ? record.learners.map(l => l.name || '').join(', ') : (record.learnerName || '')}</td>
+                                    <td style="padding: 10px; border: 1px solid #d8d8d8; text-align: center;">${record.learners && record.learners.length ? record.learners.map(l => l.grade || '').join(', ') : (record.grade || '')}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
