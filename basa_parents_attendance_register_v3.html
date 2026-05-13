@@ -360,32 +360,31 @@ function clearLearners() {
 
 // ── Storage ──────────────────────────────────────────────────────
 async function loadEntries() {
-  setTableLoading(true);
-  try {
-    const res = await fetch('/api/admin/attendance');
-    if (res.ok) {
-      const data = await res.json();
-      entries = data.map(e => ({ ...e, id: e._id }));
-      setTableLoading(false);
-      return true;
+  const MAX = 3;
+  for (let attempt = 1; attempt <= MAX; attempt++) {
+    setTableMsg('Loading records from database' + (attempt > 1 ? ' (attempt ' + attempt + ' of ' + MAX + ')…' : '…'));
+    try {
+      const res = await fetch('/api/admin/attendance');
+      if (res.ok) {
+        const data = await res.json();
+        entries = data.map(e => ({ ...e, id: e._id }));
+        return true;
+      }
+    } catch(e) {}
+    if (attempt < MAX) {
+      setTableMsg('Server is waking up — retrying in 8 seconds… (attempt ' + attempt + ' of ' + MAX + ')', true);
+      await new Promise(r => setTimeout(r, 8000));
     }
-    setTableLoading(false, 'Server returned an error. Try refreshing.');
-    return false;
-  } catch(e) {
-    entries = [];
-    setTableLoading(false, 'Could not reach server. The server may be waking up — wait 30 seconds and click Refresh Records.');
-    return false;
   }
+  entries = [];
+  setTableMsg('Could not reach the server after ' + MAX + ' attempts. Click ↻ Refresh Records to try again.', true);
+  return false;
 }
 
-function setTableLoading(loading, errorMsg) {
+function setTableMsg(msg, isError) {
   const tbody = document.getElementById('registerBody');
   if (!tbody) return;
-  if (loading) {
-    tbody.innerHTML = '<tr><td colspan="11" class="no-records">Loading records from database…</td></tr>';
-  } else if (errorMsg) {
-    tbody.innerHTML = '<tr><td colspan="11" class="no-records" style="color:var(--error);">' + errorMsg + '</td></tr>';
-  }
+  tbody.innerHTML = '<tr><td colspan="11" class="no-records" style="' + (isError ? 'color:var(--error);' : '') + '">' + msg + '</td></tr>';
 }
 
 async function saveEntries() {
@@ -440,29 +439,26 @@ function unlockAdmin() {
   document.getElementById('adminSection').classList.add('visible');
   document.getElementById('adminBar').style.display = 'flex';
   document.getElementById('adminFooter').style.display = 'none';
-  renderTable();
-  showToast('Loading attendance records…');
+  document.getElementById('adminSection').scrollIntoView({behavior:'smooth', block:'start'});
   loadEntries().then((ok) => {
-    rebuildFilters();
-    renderTable();
     if (ok) {
-      showToast('Administrator view unlocked. ' + entries.length + ' record(s) loaded.', false, true);
+      rebuildFilters();
+      renderTable();
+      showToast(entries.length + ' record(s) loaded.', false, true);
     } else {
-      showToast('Could not load records. Server may be waking up — click Refresh Records.', true);
+      showToast('Could not reach server. Click ↻ Refresh Records to try again.', true);
     }
-    document.getElementById('adminSection').scrollIntoView({behavior:'smooth', block:'start'});
   });
 }
 
 function refreshRecords() {
-  showToast('Refreshing records…');
   loadEntries().then((ok) => {
-    rebuildFilters();
-    renderTable();
     if (ok) {
+      rebuildFilters();
+      renderTable();
       showToast(entries.length + ' record(s) loaded.', false, true);
     } else {
-      showToast('Still could not reach server. Try again in 30 seconds.', true);
+      showToast('Still could not reach server. Try again shortly.', true);
     }
   });
 }
@@ -776,6 +772,8 @@ document.getElementById('pinModal').addEventListener('click', function(e) {
 // ── Init ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('eventDate').valueAsDate = new Date();
+  // Ping server immediately so Render wakes from sleep before form is used
+  fetch('/api/health').catch(() => {});
 });
 </script>
 </body>

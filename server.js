@@ -51,6 +51,11 @@ function waitForDb(ms) {
   });
 }
 
+// Health check — used by the frontend to wake Render from sleep on page load
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', dbConnected, timestamp: new Date().toISOString() });
+});
+
 // Sync entries from offline JSON files into MongoDB (runs once on connection)
 async function syncOfflineData() {
   const files = [
@@ -142,7 +147,7 @@ app.get('/admin', (req, res) => {
 
 app.post('/api/submit-grade10', async (req, res) => {
   try {
-    if (!dbConnected) await waitForDb(12000);
+    if (!dbConnected) await waitForDb(25000);
     if (dbConnected) {
       const formData = new Grade10Form(req.body);
       await formData.save();
@@ -157,7 +162,7 @@ app.post('/api/submit-grade10', async (req, res) => {
 
 app.post('/api/submit-attendance', async (req, res) => {
   try {
-    if (!dbConnected) await waitForDb(12000);
+    if (!dbConnected) await waitForDb(25000);
     if (dbConnected) {
       const attendanceData = new Attendance(req.body);
       await attendanceData.save();
