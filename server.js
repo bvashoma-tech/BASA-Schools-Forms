@@ -84,8 +84,7 @@ const attendanceSchema = new mongoose.Schema({
   surname: String,
   mobile: String,
   email: String,
-  learnerName: String,
-  grade: String,
+  learners: [{ name: String, grade: String }],
   submittedAt: { type: Date, default: Date.now }
 });
 

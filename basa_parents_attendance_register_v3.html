@@ -191,22 +191,16 @@ tbody td{padding:6px 8px;vertical-align:middle;}
         <label for="pEmail">Email Address</label>
         <input type="email" id="pEmail" placeholder="parent@email.com"/>
       </div>
-      <div class="field" id="f-learner">
-        <label for="lName">Learner Name *</label>
-        <input type="text" id="lName" placeholder="Learner full name"/>
-        <div class="err-msg">Required.</div>
-      </div>
-      <div class="field" id="f-grade">
-        <label for="lGrade">Grade *</label>
-        <select id="lGrade">
-          <option value="">-- Grade --</option>
-          <option>R</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
-          <option>6</option><option>7</option><option>8</option><option>9</option>
-          <option>10</option><option>11</option><option>12</option>
-        </select>
-        <div class="err-msg">Required.</div>
-      </div>
     </div>
+
+    <hr class="section-sep"/>
+    <h2>Learners</h2>
+    <div class="info-note">Add one or more learners attending with you.</div>
+    <div id="learnersContainer">
+      <!-- Learners will be added here dynamically -->
+    </div>
+    <button class="btn outline" onclick="addLearner()" style="margin-top:10px;">&#43; Add Learner</button>
+
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
       <button class="btn navy" onclick="addEntry()">&#10003; Sign In</button>
       <button class="btn outline" onclick="clearForm(false)">Clear Form</button>
@@ -249,8 +243,7 @@ tbody td{padding:6px 8px;vertical-align:middle;}
               <th>Surname</th>
               <th>Mobile</th>
               <th>Email</th>
-              <th>Learner</th>
-              <th>Grade</th>
+              <th>Learners</th>
               <th>Event</th>
               <th>Date</th>
               <th style="width:52px;"></th>
@@ -308,6 +301,62 @@ const STORAGE_KEY = 'basa-parents-register-entries';
 let entries = [];
 let toastTimer;
 let adminUnlocked = false;
+let learnerCount = 0;
+
+// ── Learners management ───────────────────────────────────────────
+function addLearner(name = '', grade = '') {
+  learnerCount++;
+  const container = document.getElementById('learnersContainer');
+  const learnerDiv = document.createElement('div');
+  learnerDiv.className = 'learner-entry';
+  learnerDiv.style.display = 'flex';
+  learnerDiv.style.gap = '10px';
+  learnerDiv.style.alignItems = 'flex-end';
+  learnerDiv.style.marginBottom = '10px';
+  learnerDiv.innerHTML = `
+    <div class="field" style="flex:1;">
+      <label for="lName${learnerCount}">Learner Name *</label>
+      <input type="text" id="lName${learnerCount}" placeholder="Learner full name" value="${name}"/>
+      <div class="err-msg">Required.</div>
+    </div>
+    <div class="field" style="flex:1;">
+      <label for="lGrade${learnerCount}">Grade *</label>
+      <select id="lGrade${learnerCount}">
+        <option value="">-- Grade --</option>
+        <option>R</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+        <option>6</option><option>7</option><option>8</option><option>9</option>
+        <option>10</option><option>11</option><option>12</option>
+      </select>
+      <div class="err-msg">Required.</div>
+    </div>
+    <button class="btn danger-btn sm" onclick="removeLearner(this)" title="Remove Learner">&#10005;</button>
+  `;
+  container.appendChild(learnerDiv);
+  if (grade) document.getElementById(`lGrade${learnerCount}`).value = grade;
+}
+
+function removeLearner(btn) {
+  btn.parentElement.remove();
+}
+
+function getLearners() {
+  const learners = [];
+  const container = document.getElementById('learnersContainer');
+  const entries = container.querySelectorAll('.learner-entry');
+  entries.forEach(entry => {
+    const name = entry.querySelector('input[type="text"]').value.trim();
+    const grade = entry.querySelector('select').value.trim();
+    if (name && grade) {
+      learners.push({ name, grade });
+    }
+  });
+  return learners;
+}
+
+function clearLearners() {
+  document.getElementById('learnersContainer').innerHTML = '';
+  learnerCount = 0;
+}
 
 // ── Storage ──────────────────────────────────────────────────────
 async function loadEntries() {
@@ -401,9 +450,16 @@ function addEntry() {
   const checks = [
     ['f-event','eventType'],['f-campus','campus'],
     ['f-title','pTitle'],['f-fname','pFname'],['f-sname','pSname'],
-    ['f-mobile','pMobile'],['f-learner','lName'],['f-grade','lGrade']
+    ['f-mobile','pMobile']
   ];
   checks.forEach(([fid,vid]) => { clearErr(fid); if(!gVal(vid)){markErr(fid);ok=false;} });
+
+  const learners = getLearners();
+  if (learners.length === 0) {
+    showToast('Please add at least one learner.', true);
+    return;
+  }
+
   if(!ok){showToast('Please fill in all required fields.', true);return;}
 
   const entry = {
@@ -411,16 +467,21 @@ function addEntry() {
     eventType: gVal('eventType'), eventDate: gVal('eventDate'), campus: gVal('campus'),
     title: gVal('pTitle'), firstName: gVal('pFname'), surname: gVal('pSname'),
     mobile: gVal('pMobile'), email: gVal('pEmail'),
-    learnerName: gVal('lName'), grade: gVal('lGrade')
+    learners: learners
   };
   entries.push(entry);
-  // Submit to backend
+  // Submit to backend (without id field to avoid MongoDB ObjectId conversion error)
+  const submitData = {
+    eventType: entry.eventType, eventDate: entry.eventDate, campus: entry.campus,
+    title: entry.title, firstName: entry.firstName, surname: entry.surname,
+    mobile: entry.mobile, email: entry.email, learners: entry.learners
+  };
   fetch('/api/submit-attendance', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(entry)
+    body: JSON.stringify(submitData)
   })
   .then(response => response.json())
   .then(data => {
@@ -434,7 +495,7 @@ function addEntry() {
       ty.classList.add('show');
       setTimeout(() => ty.classList.remove('show'), 5000);
 
-      showToast(entry.title + ' ' + entry.surname + ' signed in (Grade ' + entry.grade + ')', false, true);
+      showToast(entry.title + ' ' + entry.surname + ' signed in (' + learners.length + ' learner' + (learners.length > 1 ? 's' : '') + ')', false, true);
     } else {
       showToast('Failed to submit: ' + data.message, true);
     }
@@ -451,14 +512,15 @@ function addEntry() {
 
 // ── Clear form ───────────────────────────────────────────────────
 function clearForm(keepEvent) {
-  ['pTitle','pFname','pSname','pMobile','pEmail','lName','lGrade'].forEach(id => {
+  ['pTitle','pFname','pSname','pMobile','pEmail'].forEach(id => {
     const e = document.getElementById(id); if(e) e.value='';
   });
+  clearLearners();
   if(!keepEvent){
     ['eventType','campus'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
     document.getElementById('eventDate').valueAsDate = new Date();
   }
-  ['f-event','f-campus','f-title','f-fname','f-sname','f-mobile','f-learner','f-grade'].forEach(clearErr);
+  ['f-event','f-campus','f-title','f-fname','f-sname','f-mobile'].forEach(clearErr);
 }
 
 // ── Remove entry (admin only) ─────────────────────────────────────
@@ -525,8 +587,7 @@ function renderTable() {
       <td><strong>${e.surname}</strong></td>
       <td>${e.mobile}</td>
       <td style="font-size:.8rem;color:var(--muted);">${e.email||'—'}</td>
-      <td>${e.learnerName}</td>
-      <td><span class="grade-chip">Gr ${e.grade}</span></td>
+      <td style="font-size:.8rem;">${e.learners ? e.learners.map(l => `${l.name} (Gr ${l.grade})`).join('<br>') : `${e.learnerName} (Gr ${e.grade})`}</td>
       <td style="font-size:.8rem;">${e.eventType}</td>
       <td style="font-size:.8rem;white-space:nowrap;">${e.eventDate||''}</td>
       <td><button class="btn danger-btn" onclick="removeEntry(${e.id})" title="Remove">&#10005;</button></td>
@@ -553,13 +614,16 @@ function exportExcel() {
     ['BASA Schools – Parents Attendance Register'],
     ['Exported:', new Date().toLocaleString('en-ZA')],
     [],
-    ['#','Grade','Title','First Name','Surname','Mobile','Email','Learner Name','Event','Date','Campus']
+    ['#','Title','First Name','Surname','Mobile','Email','Learners','Event','Date','Campus']
   ];
-  sorted.forEach((e,i)=>wsData.push([i+1,e.grade,e.title,e.firstName,e.surname,e.mobile,e.email||'',e.learnerName,e.eventType,e.eventDate,e.campus]));
+  sorted.forEach((e,i)=>{
+    const learners = e.learners ? e.learners.map(l => `${l.name} (Gr ${l.grade})`).join('; ') : `${e.learnerName} (Gr ${e.grade})`;
+    wsData.push([i+1,e.title,e.firstName,e.surname,e.mobile,e.email||'',learners,e.eventType,e.eventDate,e.campus]);
+  });
   wsData.push([]);
   wsData.push(['Total Entries:',entries.length]);
   const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols']=[{wch:4},{wch:7},{wch:7},{wch:16},{wch:18},{wch:14},{wch:28},{wch:22},{wch:18},{wch:12},{wch:28}];
+  ws['!cols']=[{wch:4},{wch:7},{wch:7},{wch:16},{wch:18},{wch:14},{wch:40},{wch:18},{wch:12},{wch:28}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Register');
   XLSX.writeFile(wb, 'BASA_Parents_Register_'+new Date().toISOString().split('T')[0]+'.xlsx');
@@ -611,17 +675,33 @@ async function exportPDFByGrade() {
                 </tr>
               </thead>
               <tbody>
-                ${gradeEntries.map(e => `
-                  <tr style="background: #ffffff;">
-                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.title || ''}</td>
-                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.firstName || ''}</td>
-                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.surname || ''}</td>
-                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.mobile || ''}</td>
-                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.email || ''}</td>
-                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.learnerName || ''}</td>
-                    <td style="padding: 10px; border: 1px solid #d8d8d8; text-align:center;">${e.grade || ''}</td>
-                  </tr>
-                `).join('')}
+                ${gradeEntries.map(e => {
+                  if (e.learners) {
+                    return e.learners.map((l, idx) => `
+                      <tr style="background: #ffffff;">
+                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.title || '' : ''}</td>
+                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.firstName || '' : ''}</td>
+                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.surname || '' : ''}</td>
+                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.mobile || '' : ''}</td>
+                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.email || '' : ''}</td>
+                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${l.name || ''}</td>
+                        <td style="padding: 10px; border: 1px solid #d8d8d8; text-align:center;">${l.grade || ''}</td>
+                      </tr>
+                    `).join('');
+                  } else {
+                    return `
+                      <tr style="background: #ffffff;">
+                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.title || ''}</td>
+                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.firstName || ''}</td>
+                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.surname || ''}</td>
+                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.mobile || ''}</td>
+                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.email || ''}</td>
+                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.learnerName || ''}</td>
+                        <td style="padding: 10px; border: 1px solid #d8d8d8; text-align:center;">${e.grade || ''}</td>
+                      </tr>
+                    `;
+                  }
+                }).join('')}
               </tbody>
             </table>
           </div>
