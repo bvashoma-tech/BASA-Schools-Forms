@@ -292,7 +292,6 @@ tbody td{padding:6px 8px;vertical-align:middle;}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 // ── Config ──────────────────────────────────────────────────────
 const ADMIN_PIN = 'BASA2025';      // ← Change this PIN as needed
@@ -672,116 +671,101 @@ function exportExcel() {
 }
 
 // ── Export PDF by Grade ───────────────────────────────────────────
-async function exportPDFByGrade() {
-  if(!entries.length){showToast('No entries to export.', true);return;}
+function exportPDFByGrade() {
+  if (!entries.length) { showToast('No entries to export.', true); return; }
 
+  const navy  = [36, 49, 88];
+  const gold  = [201, 162, 39];
+  const white = [255, 255, 255];
   const exportDate = new Date().toLocaleDateString('en-ZA');
+
   const sortedGrades = [...new Set(
-    entries.flatMap(e => e.learners ? e.learners.map(l=>l.grade).filter(Boolean) : (e.grade?[e.grade]:[]))
-  )].sort((a,b)=>gradeSort(a)-gradeSort(b));
-  const pdfWrapper = document.createElement('div');
-  pdfWrapper.style.position = 'absolute';
-  pdfWrapper.style.left = '-9999px';
-  pdfWrapper.style.top = '0';
-  pdfWrapper.style.width = '1200px';
-  pdfWrapper.style.background = '#ffffff';
-  pdfWrapper.style.padding = '24px';
-  pdfWrapper.style.fontFamily = "'NewsGoth BT', Arial, sans-serif";
-  pdfWrapper.style.color = '#2c5530';
-  pdfWrapper.style.boxSizing = 'border-box';
-  pdfWrapper.style.lineHeight = '1.4';
+    entries.flatMap(e => e.learners ? e.learners.map(l => l.grade).filter(Boolean) : (e.grade ? [e.grade] : []))
+  )].sort((a, b) => gradeSort(a) - gradeSort(b));
 
-  pdfWrapper.innerHTML = `
-    <div style="padding: 18px 24px; border: 2px solid #243158; border-radius: 16px; margin-bottom: 20px; background: #f7f8fb;">
-      <h1 style="margin: 0; font-size: 32px; letter-spacing: .02em;">BASA Schools Attendance Register</h1>
-      <p style="margin: 10px 0 0; font-size: 16px;">Parents Attendance Records</p>
-      <div style="margin-top: 8px; font-size: 13px; color: #243158;">Generated: ${exportDate}</div>
-    </div>
-    ${sortedGrades.map(grade => {
-      const gradeEntries = entries
-        .filter(e => e.learners ? e.learners.some(l=>l.grade===grade) : e.grade===grade)
-        .sort((a,b) => a.surname.localeCompare(b.surname));
-      return `
-        <section style="margin-bottom: 28px;">
-          <div style="padding: 14px 16px; background: #243158; color: #fff; border-radius: 12px; margin-bottom: 12px;">
-            <strong style="font-size: 14px;">Grade ${grade} — ${gradeEntries.length} Parent${gradeEntries.length !== 1 ? 's' : ''}</strong>
-          </div>
-          <div style="overflow-x:auto;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-              <thead>
-                <tr style="background: #f2f2f2; color: #243158; text-align: left;">
-                  <th style="padding: 10px; border: 1px solid #d8d8d8; width: 8%;">Title</th>
-                  <th style="padding: 10px; border: 1px solid #d8d8d8; width: 15%;">Parent Name</th>
-                  <th style="padding: 10px; border: 1px solid #d8d8d8; width: 15%;">Parent Surname</th>
-                  <th style="padding: 10px; border: 1px solid #d8d8d8; width: 14%;">Mobile Number</th>
-                  <th style="padding: 10px; border: 1px solid #d8d8d8; width: 22%;">Email</th>
-                  <th style="padding: 10px; border: 1px solid #d8d8d8; width: 18%;">Learner Name</th>
-                  <th style="padding: 10px; border: 1px solid #d8d8d8; width: 8%;">Grade</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${gradeEntries.map(e => {
-                  const gradeLearners = e.learners
-                    ? e.learners.filter(l=>l.grade===grade)
-                    : [{name: e.learnerName, grade: e.grade}];
-                  return gradeLearners.map((l, idx) => `
-                    <tr style="background: #ffffff;">
-                      <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.title || '' : ''}</td>
-                      <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.firstName || '' : ''}</td>
-                      <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.surname || '' : ''}</td>
-                      <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.mobile || '' : ''}</td>
-                      <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.email || '' : ''}</td>
-                      <td style="padding: 10px; border: 1px solid #d8d8d8;">${l.name || ''}</td>
-                      <td style="padding: 10px; border: 1px solid #d8d8d8; text-align:center;">${l.grade || ''}</td>
-                    </tr>
-                  `).join('');
-                }).join('')}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      `;
-    }).join('')}
-    <div style="margin-top: 10px; font-size: 11px; color: #707070;">BASA Schools — Export generated from the attendance register.</div>
-  `;
+  if (!sortedGrades.length) { showToast('No grade data found to export.', true); return; }
 
-  document.body.appendChild(pdfWrapper);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-  try {
-    const canvas = await html2canvas(pdfWrapper, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
-    const imageData = canvas.toDataURL('image/png');
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const pdfWidth = pageWidth - 16;
-    const pageHeightPx = Math.floor(canvas.width * (pageHeight - 16) / pdfWidth);
+  // Document header (first page)
+  doc.setFillColor(...navy);
+  doc.rect(0, 0, 210, 26, 'F');
+  doc.setTextColor(...white);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.text('BASA Schools — Parents Attendance Register', 14, 11);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('Generated: ' + exportDate + '   |   Total parents: ' + entries.length, 14, 19);
 
-    const pageCanvas = document.createElement('canvas');
-    pageCanvas.width = canvas.width;
-    pageCanvas.height = pageHeightPx;
-    const pageContext = pageCanvas.getContext('2d');
+  let y = 32;
 
-    let sourceY = 0;
-    let pageIndex = 0;
-    while (sourceY < canvas.height) {
-      pageContext.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
-      pageContext.drawImage(canvas, 0, sourceY, canvas.width, pageCanvas.height, 0, 0, pageCanvas.width, pageCanvas.height);
-      const pageData = pageCanvas.toDataURL('image/png');
-      if (pageIndex > 0) pdf.addPage();
-      pdf.addImage(pageData, 'PNG', 8, 8, pdfWidth, pageHeight - 16);
-      sourceY += pageHeightPx;
-      pageIndex += 1;
-    }
+  sortedGrades.forEach(grade => {
+    const gradeEntries = entries
+      .filter(e => e.learners ? e.learners.some(l => l.grade === grade) : e.grade === grade)
+      .sort((a, b) => a.surname.localeCompare(b.surname));
 
-    pdf.save('BASA_Parents_Attendance_By_Grade_' + new Date().toISOString().split('T')[0] + '.pdf');
-    showToast('PDF by grade exported successfully!', false, true);
-  } catch (error) {
-    console.error('PDF export failed:', error);
-    showToast('Unable to generate PDF. Please refresh and try again.', true);
-  } finally {
-    document.body.removeChild(pdfWrapper);
+    const rows = [];
+    gradeEntries.forEach(e => {
+      const gl = e.learners ? e.learners.filter(l => l.grade === grade) : [{ name: e.learnerName, grade: e.grade }];
+      gl.forEach((l, idx) => {
+        rows.push([
+          idx === 0 ? (e.title || '') : '',
+          idx === 0 ? (e.firstName || '') : '',
+          idx === 0 ? (e.surname || '') : '',
+          idx === 0 ? (e.mobile || '') : '',
+          idx === 0 ? (e.email || '') : '',
+          l.name || '',
+          l.grade || ''
+        ]);
+      });
+    });
+
+    doc.autoTable({
+      startY: y,
+      head: [
+        [{ content: 'Grade ' + grade + '  —  ' + gradeEntries.length + ' parent' + (gradeEntries.length !== 1 ? 's' : ''), colSpan: 7 }],
+        ['Title', 'First Name', 'Surname', 'Mobile', 'Email', 'Learner Name', 'Gr']
+      ],
+      body: rows,
+      theme: 'striped',
+      styles: { fontSize: 7.5, cellPadding: 2 },
+      headStyles: { fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 8 },
+      didParseCell(data) {
+        if (data.section === 'head' && data.row.index === 1) {
+          data.cell.styles.fillColor = gold;
+          data.cell.styles.textColor = navy;
+        }
+      },
+      columnStyles: {
+        0: { cellWidth: 12 },
+        1: { cellWidth: 28 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 27 },
+        4: { cellWidth: 43 },
+        5: { cellWidth: 36 },
+        6: { cellWidth: 10 }
+      },
+      margin: { left: 12, right: 12 }
+    });
+
+    y = doc.lastAutoTable.finalY + 6;
+    if (y > 260) { doc.addPage(); y = 12; }
+  });
+
+  // Page numbers on every page
+  const total = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(160, 160, 160);
+    doc.text('BASA Schools — Attendance Register', 12, 292);
+    doc.text('Page ' + i + ' of ' + total, 198, 292, { align: 'right' });
   }
+
+  doc.save('BASA_Attendance_By_Grade_' + new Date().toISOString().split('T')[0] + '.pdf');
+  showToast('PDF exported successfully!', false, true);
 }
 
 // ── Close modal on overlay click ─────────────────────────────────
