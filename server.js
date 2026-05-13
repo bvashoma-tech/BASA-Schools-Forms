@@ -191,7 +191,7 @@ app.get('/api/admin/forms', async (req, res) => {
 app.get('/api/admin/attendance', async (req, res) => {
   try {
     if (dbConnected) {
-      const attendance = await Attendance.find().sort({ submittedAt: -1 });
+      const attendance = await Attendance.find().sort({ submittedAt: -1 }).lean();
       return res.json(attendance);
     }
     const filePath = path.join(offlineDir, 'attendance_offline.json');

@@ -606,7 +606,7 @@ function renderTable() {
   const tbody = document.getElementById('registerBody');
   if (!tbody) return;
   document.getElementById('entryCount').textContent = entries.length;
-  const grades = new Set(entries.map(e=>e.grade));
+  const grades = new Set(entries.flatMap(e=>e.learners ? e.learners.map(l=>l.grade) : (e.grade?[e.grade]:[])));
   const withEmail = entries.filter(e=>e.email).length;
   document.getElementById('sTot').textContent = entries.length;
   document.getElementById('sGr').textContent = grades.size;
@@ -628,7 +628,7 @@ function renderTable() {
       <td><strong>${e.surname}</strong></td>
       <td>${e.mobile}</td>
       <td style="font-size:.8rem;color:var(--muted);">${e.email||'—'}</td>
-      <td style="font-size:.8rem;">${e.learners ? e.learners.map(l => `${l.name} (Gr ${l.grade})`).join('<br>') : `${e.learnerName} (Gr ${e.grade})`}</td>
+      <td style="font-size:.8rem;">${(e.learners && e.learners.length) ? e.learners.map(l=>`${l.name||'—'} (Gr ${l.grade||'—'})`).join('<br>') : (e.learnerName ? `${e.learnerName} (Gr ${e.grade||'—'})` : '—')}</td>
       <td style="font-size:.8rem;">${e.eventType}</td>
       <td style="font-size:.8rem;white-space:nowrap;">${e.eventDate||''}</td>
       <td><button class="btn danger-btn" onclick="removeEntry('${e.id}')" title="Remove">&#10005;</button></td>
@@ -676,7 +676,9 @@ async function exportPDFByGrade() {
   if(!entries.length){showToast('No entries to export.', true);return;}
 
   const exportDate = new Date().toLocaleDateString('en-ZA');
-  const sortedGrades = [...new Set(entries.map(e => e.grade))].sort((a,b)=>gradeSort(a)-gradeSort(b));
+  const sortedGrades = [...new Set(
+    entries.flatMap(e => e.learners ? e.learners.map(l=>l.grade).filter(Boolean) : (e.grade?[e.grade]:[]))
+  )].sort((a,b)=>gradeSort(a)-gradeSort(b));
   const pdfWrapper = document.createElement('div');
   pdfWrapper.style.position = 'absolute';
   pdfWrapper.style.left = '-9999px';
@@ -696,7 +698,9 @@ async function exportPDFByGrade() {
       <div style="margin-top: 8px; font-size: 13px; color: #243158;">Generated: ${exportDate}</div>
     </div>
     ${sortedGrades.map(grade => {
-      const gradeEntries = entries.filter(e => e.grade === grade).sort((a,b) => a.surname.localeCompare(b.surname));
+      const gradeEntries = entries
+        .filter(e => e.learners ? e.learners.some(l=>l.grade===grade) : e.grade===grade)
+        .sort((a,b) => a.surname.localeCompare(b.surname));
       return `
         <section style="margin-bottom: 28px;">
           <div style="padding: 14px 16px; background: #243158; color: #fff; border-radius: 12px; margin-bottom: 12px;">
@@ -717,31 +721,20 @@ async function exportPDFByGrade() {
               </thead>
               <tbody>
                 ${gradeEntries.map(e => {
-                  if (e.learners) {
-                    return e.learners.map((l, idx) => `
-                      <tr style="background: #ffffff;">
-                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.title || '' : ''}</td>
-                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.firstName || '' : ''}</td>
-                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.surname || '' : ''}</td>
-                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.mobile || '' : ''}</td>
-                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.email || '' : ''}</td>
-                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${l.name || ''}</td>
-                        <td style="padding: 10px; border: 1px solid #d8d8d8; text-align:center;">${l.grade || ''}</td>
-                      </tr>
-                    `).join('');
-                  } else {
-                    return `
-                      <tr style="background: #ffffff;">
-                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.title || ''}</td>
-                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.firstName || ''}</td>
-                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.surname || ''}</td>
-                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.mobile || ''}</td>
-                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.email || ''}</td>
-                        <td style="padding: 10px; border: 1px solid #d8d8d8;">${e.learnerName || ''}</td>
-                        <td style="padding: 10px; border: 1px solid #d8d8d8; text-align:center;">${e.grade || ''}</td>
-                      </tr>
-                    `;
-                  }
+                  const gradeLearners = e.learners
+                    ? e.learners.filter(l=>l.grade===grade)
+                    : [{name: e.learnerName, grade: e.grade}];
+                  return gradeLearners.map((l, idx) => `
+                    <tr style="background: #ffffff;">
+                      <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.title || '' : ''}</td>
+                      <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.firstName || '' : ''}</td>
+                      <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.surname || '' : ''}</td>
+                      <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.mobile || '' : ''}</td>
+                      <td style="padding: 10px; border: 1px solid #d8d8d8;">${idx === 0 ? e.email || '' : ''}</td>
+                      <td style="padding: 10px; border: 1px solid #d8d8d8;">${l.name || ''}</td>
+                      <td style="padding: 10px; border: 1px solid #d8d8d8; text-align:center;">${l.grade || ''}</td>
+                    </tr>
+                  `).join('');
                 }).join('')}
               </tbody>
             </table>
