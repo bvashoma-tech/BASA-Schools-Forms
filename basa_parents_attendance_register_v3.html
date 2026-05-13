@@ -360,25 +360,17 @@ function clearLearners() {
 
 // ── Storage ──────────────────────────────────────────────────────
 async function loadEntries() {
-  const MAX = 3;
-  for (let attempt = 1; attempt <= MAX; attempt++) {
-    setTableMsg('Loading records from database' + (attempt > 1 ? ' (attempt ' + attempt + ' of ' + MAX + ')…' : '…'));
-    try {
-      const res = await fetch('/api/admin/attendance');
-      if (res.ok) {
-        const data = await res.json();
-        entries = data.map(e => ({ ...e, id: e._id }));
-        return true;
-      }
-    } catch(e) {}
-    if (attempt < MAX) {
-      setTableMsg('Server is waking up — retrying in 8 seconds… (attempt ' + attempt + ' of ' + MAX + ')', true);
-      await new Promise(r => setTimeout(r, 8000));
-    }
+  setTableMsg('Loading records…');
+  try {
+    const res = await fetch('/api/admin/attendance');
+    const data = await res.json();
+    entries = data.map(e => ({ ...e, id: e._id }));
+    return true;
+  } catch(e) {
+    entries = [];
+    setTableMsg('Could not load records. Click ↻ Refresh Records to try again.', true);
+    return false;
   }
-  entries = [];
-  setTableMsg('Could not reach the server after ' + MAX + ' attempts. Click ↻ Refresh Records to try again.', true);
-  return false;
 }
 
 function setTableMsg(msg, isError) {
