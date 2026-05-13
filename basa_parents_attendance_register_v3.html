@@ -502,8 +502,6 @@ function addEntry() {
     mobile: gVal('pMobile'), email: gVal('pEmail'),
     learners: learners
   };
-  entries.push(entry);
-  // Submit to backend (without id field to avoid MongoDB ObjectId conversion error)
   const submitData = {
     eventType: entry.eventType, eventDate: entry.eventDate, campus: entry.campus,
     title: entry.title, firstName: entry.firstName, surname: entry.surname,
@@ -511,35 +509,33 @@ function addEntry() {
   };
   fetch('/api/submit-attendance', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(submitData)
   })
   .then(response => response.json())
   .then(data => {
     if (data.success) {
-      saveEntries(); // Keep local storage as backup
-      if (adminUnlocked) { renderTable(); rebuildFilters(); }
+      const savedToMongo = data.saved === 'mongodb';
+      if (savedToMongo) {
+        entries.push(entry);
+        if (adminUnlocked) { renderTable(); rebuildFilters(); }
+      }
       clearForm(true);
-
-      // Show thank-you note to parent
       const ty = document.getElementById('thankyouNote');
       ty.classList.add('show');
       setTimeout(() => ty.classList.remove('show'), 5000);
-
-      showToast(entry.title + ' ' + entry.surname + ' signed in (' + learners.length + ' learner' + (learners.length > 1 ? 's' : '') + ')', false, true);
+      if (savedToMongo) {
+        showToast(entry.title + ' ' + entry.surname + ' signed in (' + learners.length + ' learner' + (learners.length > 1 ? 's' : '') + ')', false, true);
+      } else {
+        showToast('Server busy — record saved offline and will sync automatically.', true);
+      }
     } else {
       showToast('Failed to submit: ' + data.message, true);
     }
   })
-  .catch(error => {
-    console.error('Error:', error);
-    // Fallback to local storage
-    saveEntries();
-    if (adminUnlocked) { renderTable(); rebuildFilters(); }
+  .catch(() => {
     clearForm(true);
-    showToast('Saved locally (offline mode)', false, true);
+    showToast('Could not reach server. Please check your connection and try again.', true);
   });
 }
 
