@@ -256,6 +256,7 @@ tbody td{padding:6px 8px;vertical-align:middle;}
       </div>
 
       <div class="actions">
+        <button class="btn outline" onclick="refreshRecords()">&#8635; Refresh Records</button>
         <button class="btn" onclick="exportExcel()">&#128202; Export Excel</button>
         <button class="btn navy" onclick="exportPDFByGrade()">&#128196; PDF by Grade</button>
         <button class="btn outline" onclick="clearAll()">&#128465; Clear All Entries</button>
@@ -360,14 +361,31 @@ function clearLearners() {
 
 // ── Storage ──────────────────────────────────────────────────────
 async function loadEntries() {
+  setTableLoading(true);
   try {
     const res = await fetch('/api/admin/attendance');
     if (res.ok) {
       const data = await res.json();
       entries = data.map(e => ({ ...e, id: e._id }));
+      setTableLoading(false);
+      return true;
     }
+    setTableLoading(false, 'Server returned an error. Try refreshing.');
+    return false;
   } catch(e) {
     entries = [];
+    setTableLoading(false, 'Could not reach server. The server may be waking up — wait 30 seconds and click Refresh Records.');
+    return false;
+  }
+}
+
+function setTableLoading(loading, errorMsg) {
+  const tbody = document.getElementById('registerBody');
+  if (!tbody) return;
+  if (loading) {
+    tbody.innerHTML = '<tr><td colspan="11" class="no-records">Loading records from database…</td></tr>';
+  } else if (errorMsg) {
+    tbody.innerHTML = '<tr><td colspan="11" class="no-records" style="color:var(--error);">' + errorMsg + '</td></tr>';
   }
 }
 
@@ -425,11 +443,28 @@ function unlockAdmin() {
   document.getElementById('adminFooter').style.display = 'none';
   renderTable();
   showToast('Loading attendance records…');
-  loadEntries().then(() => {
+  loadEntries().then((ok) => {
     rebuildFilters();
     renderTable();
-    showToast('Administrator view unlocked.', false, true);
+    if (ok) {
+      showToast('Administrator view unlocked. ' + entries.length + ' record(s) loaded.', false, true);
+    } else {
+      showToast('Could not load records. Server may be waking up — click Refresh Records.', true);
+    }
     document.getElementById('adminSection').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+}
+
+function refreshRecords() {
+  showToast('Refreshing records…');
+  loadEntries().then((ok) => {
+    rebuildFilters();
+    renderTable();
+    if (ok) {
+      showToast(entries.length + ' record(s) loaded.', false, true);
+    } else {
+      showToast('Still could not reach server. Try again in 30 seconds.', true);
+    }
   });
 }
 
