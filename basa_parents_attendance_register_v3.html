@@ -361,21 +361,21 @@ function clearLearners() {
 // ── Storage ──────────────────────────────────────────────────────
 async function loadEntries() {
   try {
-    const res = await window.storage.get(STORAGE_KEY);
-    if (res && res.value) {
-      entries = JSON.parse(res.value);
-      showStorageNote('Loaded ' + entries.length + ' saved entr' + (entries.length===1?'y':'ies') + ' from storage.');
-      if (adminUnlocked) { renderTable(); rebuildFilters(); }
+    const res = await fetch('/api/admin/attendance');
+    if (res.ok) {
+      const data = await res.json();
+      entries = data.map(e => ({ ...e, id: e._id }));
     }
-  } catch(e) { entries = []; }
+  } catch(e) {
+    entries = [];
+  }
 }
 
 async function saveEntries() {
+  // Local backup — silently ignored if window.storage is unavailable
   try {
     await window.storage.set(STORAGE_KEY, JSON.stringify(entries));
-  } catch(e) {
-    showToast('Warning: could not save to storage.', true);
-  }
+  } catch(e) {}
 }
 
 function showStorageNote(msg) {
@@ -424,10 +424,13 @@ function unlockAdmin() {
   document.getElementById('adminBar').style.display = 'flex';
   document.getElementById('adminFooter').style.display = 'none';
   renderTable();
-  rebuildFilters();
-  showToast('Administrator view unlocked.', false, true);
-  // scroll to register
-  document.getElementById('adminSection').scrollIntoView({behavior:'smooth', block:'start'});
+  showToast('Loading attendance records…');
+  loadEntries().then(() => {
+    rebuildFilters();
+    renderTable();
+    showToast('Administrator view unlocked.', false, true);
+    document.getElementById('adminSection').scrollIntoView({behavior:'smooth', block:'start'});
+  });
 }
 
 function lockAdmin() {
@@ -525,8 +528,7 @@ function clearForm(keepEvent) {
 
 // ── Remove entry (admin only) ─────────────────────────────────────
 function removeEntry(id) {
-  entries = entries.filter(e => e.id !== id);
-  saveEntries();
+  entries = entries.filter(e => String(e.id) !== String(id));
   renderTable();
   rebuildFilters();
   showToast('Entry removed.');
@@ -540,7 +542,8 @@ function gradeSort(g) {
 
 // ── Rebuild filter dropdowns ─────────────────────────────────────
 function rebuildFilters() {
-  const grades = [...new Set(entries.map(e=>e.grade))].sort((a,b)=>gradeSort(a)-gradeSort(b));
+  const allGrades = entries.flatMap(e => e.learners ? e.learners.map(l => l.grade) : (e.grade ? [e.grade] : []));
+  const grades = [...new Set(allGrades)].sort((a,b)=>gradeSort(a)-gradeSort(b));
   const events = [...new Set(entries.map(e=>e.eventType))].filter(Boolean);
   const fg = document.getElementById('filterGrade');
   const fe = document.getElementById('filterEvent');
@@ -556,8 +559,11 @@ function getFiltered() {
   const fe = document.getElementById('filterEvent');
   const gr = fg ? fg.value : '';
   const ev = fe ? fe.value : '';
-  return entries.filter(e => (!gr||e.grade===gr) && (!ev||e.eventType===ev))
-    .sort((a,b)=>gradeSort(a.grade)-gradeSort(b.grade)||a.surname.localeCompare(b.surname));
+  return entries.filter(e => {
+    const matchEvent = !ev || e.eventType === ev;
+    const matchGrade = !gr || (e.learners ? e.learners.some(l => l.grade === gr) : e.grade === gr);
+    return matchEvent && matchGrade;
+  }).sort((a,b) => a.surname.localeCompare(b.surname));
 }
 
 function renderTable() {
@@ -590,7 +596,7 @@ function renderTable() {
       <td style="font-size:.8rem;">${e.learners ? e.learners.map(l => `${l.name} (Gr ${l.grade})`).join('<br>') : `${e.learnerName} (Gr ${e.grade})`}</td>
       <td style="font-size:.8rem;">${e.eventType}</td>
       <td style="font-size:.8rem;white-space:nowrap;">${e.eventDate||''}</td>
-      <td><button class="btn danger-btn" onclick="removeEntry(${e.id})" title="Remove">&#10005;</button></td>
+      <td><button class="btn danger-btn" onclick="removeEntry('${e.id}')" title="Remove">&#10005;</button></td>
     </tr>
   `).join('');
 }
@@ -758,7 +764,6 @@ document.getElementById('pinModal').addEventListener('click', function(e) {
 // ── Init ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('eventDate').valueAsDate = new Date();
-  loadEntries();
 });
 </script>
 </body>
