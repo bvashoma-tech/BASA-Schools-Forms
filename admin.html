@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BASA Admin Panel</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #f5f7fa; }
+        /* ── Nav bar ── */
+        .topnav { background: linear-gradient(135deg, #1a2744, #111a2f); padding: 0 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; border-bottom: 4px solid #C9A227; }
+        .topnav-brand { color: #C9A227; font-weight: 800; font-size: 1rem; letter-spacing: 1px; padding: 14px 0; white-space: nowrap; }
+        .topnav-links { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 0; }
+        .topnav-links a { color: #cdd5e0; text-decoration: none; font-size: .84rem; font-weight: 600; padding: 6px 14px; border-radius: 5px; transition: background .2s, color .2s; white-space: nowrap; }
+        .topnav-links a:hover { background: rgba(201,162,39,.15); color: #C9A227; }
+        .topnav-links a.active { background: #C9A227; color: #111a2f; }
+        /* ── Page body ── */
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+        h1 { color: #1a2744; margin-bottom: 16px; }
+        .section { margin-bottom: 40px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
+        th { background-color: #1a2744; color: #fff; font-size: .85rem; }
+        tbody tr:hover { background: #fdf8ec; }
+        .pin-form { margin-bottom: 20px; }
+        .pin-form input { padding: 8px; margin-right: 10px; border: 1.5px solid #ddd; border-radius: 6px; font-size: .95rem; }
+        .btn { padding: 10px 14px; border: none; border-radius: 6px; background: #C9A227; color: #111a2f; cursor: pointer; font-weight: 700; font-size: .88rem; transition: background .2s; }
+        .btn:hover { background: #E6C65A; }
+        .hidden { display: none; }
+        .stats { background: #f0f4ff; border-left: 4px solid #1a2744; padding: 15px 20px; border-radius: 0 6px 6px 0; margin-bottom: 24px; }
+        .stats p { margin: 4px 0; color: #1a2744; font-size: .92rem; }
+    </style>
+</head>
+<body>
+    <nav class="topnav">
+        <span class="topnav-brand">BASA Schools</span>
+        <div class="topnav-links">
+            <a href="/">&#127968; Forms Portal</a>
+            <a href="/basa_parents_attendance_register_v3.html">&#128100; Parents Attendance</a>
+            <a href="/BASA_Grade10_Subject_Choice.html">&#128218; Grade 10 Subjects</a>
+            <a href="/admin" class="active">&#128274; Admin Panel</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>BASA Schools — Admin Panel</h1>
+
+        <div id="login-section">
+            <div class="pin-form">
+                <h3>Enter Admin PIN</h3>
+                <input type="password" id="admin-pin" placeholder="Enter PIN">
+                <button onclick="checkPin()">Login</button>
+                <div id="pin-error" style="color: red; margin-top: 10px;"></div>
+            </div>
+        </div>
+
+        <div id="admin-content" class="hidden">
+            <div class="stats">
+                <h3>Dashboard</h3>
+                <p>Total Grade 10 Forms: <span id="grade10-count">0</span></p>
+                <p>Total Attendance Records: <span id="attendance-count">0</span></p>
+            </div>
+
+            <div class="section">
+                <h2>Grade 10 Subject Selection Forms</h2>
+                <table id="grade10-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Student Name</th>
+                            <th>Student Number</th>
+                            <th>Class</th>
+                            <th>School</th>
+                            <th>Mathematics</th>
+                        </tr>
+                    </thead>
+                    <tbody id="grade10-body">
+                        <tr><td colspan="6">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h2>Parents Attendance Records</h2>
+                <div style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;">
+                    <button class="btn" onclick="exportAttendanceExcel()">Export Attendance to Excel</button>
+                    <button class="btn" onclick="exportAttendancePDF()">Print Attendance PDF</button>
+                </div>
+                <table id="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Event</th>
+                            <th>Parent Name</th>
+                            <th>Learner Name</th>
+                            <th>Grade</th>
+                            <th>Campus</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-body">
+                        <tr><td colspan="6">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        async function checkPin() {
+            const pin = document.getElementById('admin-pin').value;
+            if (!pin) {
+                document.getElementById('pin-error').textContent = 'Please enter PIN';
+                return;
+            }
+
+            try {
+                // For demo purposes, using a simple check
+                // In production, this should be handled server-side
+                if (pin === 'BASA2025') { // This should match your env variable
+                    document.getElementById('login-section').classList.add('hidden');
+                    document.getElementById('admin-content').classList.remove('hidden');
+                    loadData();
+                } else {
+                    document.getElementById('pin-error').textContent = 'Invalid PIN';
+                }
+            } catch (error) {
+                document.getElementById('pin-error').textContent = 'Error checking PIN';
+            }
+        }
+
+        let attendanceRecords = [];
+
+        async function loadData() {
+            try {
+                const [formsRes, attendanceRes] = await Promise.all([
+                    fetch('/api/admin/forms'),
+                    fetch('/api/admin/attendance')
+                ]);
+
+                const forms = await formsRes.json();
+                const attendance = await attendanceRes.json();
+                attendanceRecords = attendance;
+
+                document.getElementById('grade10-count').textContent = forms.length;
+                document.getElementById('attendance-count').textContent = attendance.length;
+
+                renderGrade10Table(forms);
+                renderAttendanceTable(attendance);
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        function renderGrade10Table(forms) {
+            const tbody = document.getElementById('grade10-body');
+            if (forms.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">No forms submitted yet</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = forms.map(form => `
+                <tr>
+                    <td>${new Date(form.submittedAt).toLocaleDateString()}</td>
+                    <td>${form.firstName} ${form.surname}</td>
+                    <td>${form.studentNumber}</td>
+                    <td>${form.grade9Class}</td>
+                    <td>${form.school}</td>
+                    <td>${form.mathematics}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderAttendanceTable(attendance) {
+            const tbody = document.getElementById('attendance-body');
+            if (attendance.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">No attendance records yet</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = attendance.map(record => {
+                const learnerNames = record.learners && record.learners.length
+                    ? record.learners.map(l => l.name || '—').join('<br>')
+                    : (record.learnerName || '—');
+                const grades = record.learners && record.learners.length
+                    ? record.learners.map(l => l.grade || '—').join('<br>')
+                    : (record.grade || '—');
+                return `
+                    <tr>
+                        <td>${new Date(record.submittedAt).toLocaleDateString()}</td>
+                        <td>${record.eventType || '—'}</td>
+                        <td>${record.title || ''} ${record.firstName || ''} ${record.surname || ''}</td>
+                        <td>${learnerNames}</td>
+                        <td>${grades}</td>
+                        <td>${record.campus || '—'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function exportAttendanceExcel() {
+            if (!attendanceRecords.length) {
+                alert('No attendance records to export.');
+                return;
+            }
+            const rows = attendanceRecords.map(record => [
+                record.title || '',
+                record.firstName || '',
+                record.surname || '',
+                record.mobile || '',
+                record.email || '',
+                record.learners && record.learners.length
+                    ? record.learners.map(l => l.name || '').join('; ')
+                    : (record.learnerName || ''),
+                record.learners && record.learners.length
+                    ? record.learners.map(l => l.grade || '').join('; ')
+                    : (record.grade || '')
+            ]);
+            const wb = XLSX.utils.book_new();
+            const wsData = [
+                ['BASA Schools Attendance Register'],
+                ['Exported:', new Date().toLocaleString('en-ZA')],
+                [],
+                ['Title', 'Parent Name', 'Parent Surname', 'Mobile Number', 'Email', 'Learner Name', 'Grade'],
+                ...rows
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+            XLSX.writeFile(wb, 'BASA_Attendance_Register_' + new Date().toISOString().slice(0,10) + '.xlsx');
+        }
+
+        async function exportAttendancePDF() {
+            if (!attendanceRecords.length) {
+                alert('No attendance records to print.');
+                return;
+            }
+
+            const exportDate = new Date().toLocaleDateString('en-ZA');
+            const campusSet = [...new Set(attendanceRecords.map(r => r.campus || ''))].filter(Boolean);
+            const campusLabel = campusSet.length === 1 ? campusSet[0] : campusSet.length > 1 ? 'Multiple Campuses' : 'BASA Schools';
+
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.top = '0';
+            container.style.width = '1200px';
+            container.style.padding = '24px';
+            container.style.background = '#ffffff';
+            container.style.color = '#2c5530';
+            container.style.fontFamily = "'NewsGoth BT', Arial, sans-serif";
+            container.style.fontSize = '14px';
+            container.style.lineHeight = '1.4';
+            container.style.boxSizing = 'border-box';
+            container.innerHTML = `
+                <div style="width: 100%;">
+                    <div style="background: #243158; color: #ffffff; padding: 18px 24px; border-radius: 12px 12px 0 0;">
+                        <h1 style="margin: 0; font-size: 32px; font-weight: 700;">BASA Schools Attendance Register</h1>
+                        <p style="margin:8px 0 0; font-size: 16px; font-weight: 500;">Parents Attendance Records</p>
+                        <div style="margin-top: 10px; font-size: 12px; color: #f1f1f1;">Date: ${exportDate} • Campus: ${campusLabel}</div>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 16px; table-layout: fixed;">
+                        <thead>
+                            <tr style="background: #f2f2f2; color: #243158; text-align: left;">
+                                <th style="padding: 10px; border: 1px solid #d8d8d8; width: 8%;">Title</th>
+                                <th style="padding: 10px; border: 1px solid #d8d8d8; width: 16%;">Parent Name</th>
+                                <th style="padding: 10px; border: 1px solid #d8d8d8; width: 16%;">Parent Surname</th>
+                                <th style="padding: 10px; border: 1px solid #d8d8d8; width: 14%;">Mobile Number</th>
+                                <th style="padding: 10px; border: 1px solid #d8d8d8; width: 20%;">Email</th>
+                                <th style="padding: 10px; border: 1px solid #d8d8d8; width: 18%;">Learner Name</th>
+                                <th style="padding: 10px; border: 1px solid #d8d8d8; width: 8%;">Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${attendanceRecords.map(record => `
+                                <tr style="background: #ffffff;">
+                                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${record.title || ''}</td>
+                                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${record.firstName || ''}</td>
+                                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${record.surname || ''}</td>
+                                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${record.mobile || ''}</td>
+                                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${record.email || ''}</td>
+                                    <td style="padding: 10px; border: 1px solid #d8d8d8;">${record.learners && record.learners.length ? record.learners.map(l => l.name || '').join(', ') : (record.learnerName || '')}</td>
+                                    <td style="padding: 10px; border: 1px solid #d8d8d8; text-align: center;">${record.learners && record.learners.length ? record.learners.map(l => l.grade || '').join(', ') : (record.grade || '')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 16px; color: #707070; font-size: 11px;">Generated by BASA Schools admin export.</div>
+                </div>
+            `;
+            document.body.appendChild(container);
+
+            try {
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    useCORS: true
+                });
+                const imageData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const pdfWidth = pageWidth - 16;
+                const pageCanvas = document.createElement('canvas');
+                const pageContext = pageCanvas.getContext('2d');
+                const pageHeightPx = Math.floor(canvas.width * (pageHeight - 16) / pdfWidth);
+                pageCanvas.width = canvas.width;
+                pageCanvas.height = pageHeightPx;
+
+                let remainingHeight = canvas.height;
+                let sourceY = 0;
+                let pageIndex = 0;
+
+                while (remainingHeight > 0) {
+                    pageContext.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+                    pageContext.drawImage(canvas, 0, sourceY, canvas.width, pageCanvas.height, 0, 0, pageCanvas.width, pageCanvas.height);
+                    const pageDataUrl = pageCanvas.toDataURL('image/png');
+
+                    if (pageIndex > 0) pdf.addPage();
+                    pdf.addImage(pageDataUrl, 'PNG', 8, 8, pdfWidth, pageHeight - 16);
+                    sourceY += pageCanvas.height;
+                    remainingHeight -= pageCanvas.height;
+                    pageIndex += 1;
+                }
+                pdf.save(`BASA_Attendance_Register_${new Date().toISOString().slice(0,10)}.pdf`);
+            } catch (error) {
+                console.error('PDF generation failed:', error);
+                alert('Unable to generate PDF. Please try again or refresh the page.');
+            } finally {
+                document.body.removeChild(container);
+            }
+        }
+    </script>
+</body>
+</html>
