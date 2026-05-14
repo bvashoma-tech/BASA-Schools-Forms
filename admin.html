@@ -153,13 +153,6 @@
             `).join('');
         }
 
-        function getLearnerNames(record) {
-            if (record.learners && record.learners.length) {
-                return record.learners.map(l => `${l.name || '—'} (Gr ${l.grade || '—'})`).join(', ');
-            }
-            return record.learnerName ? `${record.learnerName} (Gr ${record.grade || '—'})` : '—';
-        }
-
         function renderAttendanceTable(attendance) {
             const tbody = document.getElementById('attendance-body');
             if (attendance.length === 0) {
@@ -167,15 +160,24 @@
                 return;
             }
 
-            tbody.innerHTML = attendance.map(record => `
-                <tr>
-                    <td>${new Date(record.submittedAt).toLocaleDateString()}</td>
-                    <td>${record.eventType || '—'}</td>
-                    <td>${record.title || ''} ${record.firstName || ''} ${record.surname || ''}</td>
-                    <td colspan="2">${getLearnerNames(record)}</td>
-                    <td>${record.campus || '—'}</td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = attendance.map(record => {
+                const learnerNames = record.learners && record.learners.length
+                    ? record.learners.map(l => l.name || '—').join('<br>')
+                    : (record.learnerName || '—');
+                const grades = record.learners && record.learners.length
+                    ? record.learners.map(l => l.grade || '—').join('<br>')
+                    : (record.grade || '—');
+                return `
+                    <tr>
+                        <td>${new Date(record.submittedAt).toLocaleDateString()}</td>
+                        <td>${record.eventType || '—'}</td>
+                        <td>${record.title || ''} ${record.firstName || ''} ${record.surname || ''}</td>
+                        <td>${learnerNames}</td>
+                        <td>${grades}</td>
+                        <td>${record.campus || '—'}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function exportAttendanceExcel() {
